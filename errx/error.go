@@ -66,6 +66,9 @@ func NewSkip(msg string, skip int) error {
 }
 
 func Wrap(err error, msg string) error {
+	if err == nil {
+		return nil
+	}
 	e := NewSkip(msg, 2).(*Error)
 	e.err = err
 	return e
