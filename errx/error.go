@@ -3,11 +3,13 @@ package errx
 import (
 	"errors"
 	"fmt"
+	"github.com/zedisdog/ty/errx/code"
 	"runtime"
 	"strings"
 )
 
 type Error struct {
+	code code.ICode
 	msg  string
 	err  error
 	file string
@@ -56,6 +58,12 @@ func New(msg string) error {
 	return NewSkip(msg, 2)
 }
 
+func NewWithCode(msg string, code code.ICode) error {
+	err := NewSkip(msg, 2).(*Error)
+	err.code = code
+	return err
+}
+
 func NewSkip(msg string, skip int) error {
 	_, file, line, _ := runtime.Caller(skip)
 	return &Error{
@@ -63,13 +71,4 @@ func NewSkip(msg string, skip int) error {
 		file: file,
 		line: line,
 	}
-}
-
-func Wrap(err error, msg string) error {
-	if err == nil {
-		return nil
-	}
-	e := NewSkip(msg, 2).(*Error)
-	e.err = err
-	return e
 }
