@@ -44,3 +44,33 @@ func TestFormat(t *testing.T) {
 	}
 	require.Equal(t, strings.Join(except, ""), fmt.Sprintf("%#v", err3))
 }
+
+func TestWalk(t *testing.T) {
+	var err *Error
+	for i := 0; i < 10; i++ {
+		if err == nil {
+			err = &Error{
+				code: Code(i),
+			}
+		} else {
+			err = WrapWithCode(err, "", Code(i)).(*Error)
+		}
+	}
+
+	var codes []Code
+	walk(err, func(c Code) bool {
+		codes = append(codes, c)
+		return true
+	})
+
+	require.Equal(t, 10, len(codes))
+
+	codes = codes[:0]
+	walk(err, func(c Code) bool {
+		codes = append(codes, c)
+		return !(c == 5)
+	})
+
+	require.Len(t, codes, 5)
+	fmt.Printf("%#v", codes)
+}

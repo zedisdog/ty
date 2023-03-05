@@ -3,13 +3,15 @@ package errx
 import (
 	"errors"
 	"fmt"
-	"github.com/zedisdog/ty/errx/code"
+	tyStrings "github.com/zedisdog/ty/strings"
+	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
 type Error struct {
-	code code.ICode
+	code Code
 	msg  string
 	err  error
 	file string
@@ -54,21 +56,44 @@ func (e Error) Format(s fmt.State, c rune) {
 	}
 }
 
+// New auto determine the caller and return error with msg.
 func New(msg string) error {
-	return NewSkip(msg, 2)
-}
+	// get call stack, and parse caller by it.
+	buf := make([]byte, 1024)
+	runtime.Stack(buf, false)
+	arr := strings.Split(string(buf), "\n")
+	newArr := arr[:0]
+	title := `goroutine \d+ \[running\]:`
+	//file := `\t\S+:\d+( \S+|)`
+	foot := `\x00+`
+	for _, v := range arr {
+		if !regexp.MustCompile(title).MatchString(v) &&
+			//!regexp.MustCompile(file).MatchString(v) &&
+			!regexp.MustCompile(foot).MatchString(v) {
+			newArr = append(newArr, v)
+		}
+	}
+	var index int
+	for index = 0; index < len(newArr); index += 2 {
+		if !tyStrings.ContainersAny(newArr[index], []string{"zedisdog/ty/errx.New", "zedisdog/ty/errx.Wrap"}) {
+			break
+		}
+	}
+	location := strings.Split(strings.Split(strings.Trim(newArr[index+1], "\t"), " ")[0], ":")
+	line, err := strconv.Atoi(location[1])
+	if err != nil {
+		panic(err)
+	}
 
-func NewWithCode(msg string, code code.ICode) error {
-	err := NewSkip(msg, 2).(*Error)
-	err.code = code
-	return err
-}
-
-func NewSkip(msg string, skip int) error {
-	_, file, line, _ := runtime.Caller(skip)
 	return &Error{
 		msg:  msg,
-		file: file,
+		file: location[0],
 		line: line,
 	}
+}
+
+func NewWithCode(msg string, code Code) error {
+	err := New(msg).(*Error)
+	err.code = code
+	return err
 }

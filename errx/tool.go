@@ -2,15 +2,19 @@ package errx
 
 import (
 	"errors"
-	"github.com/zedisdog/ty/errx/code"
 )
 
 func Wrap(err error, msg string) error {
+	return WrapWithCode(err, msg, Nil)
+}
+
+func WrapWithCode(err error, msg string, code Code) error {
 	if err == nil {
 		return nil
 	}
-	e := NewSkip(msg, 2).(*Error)
+	e := New(msg).(*Error)
 	e.err = err
+	e.code = code
 	return e
 }
 
@@ -23,36 +27,27 @@ func Is(err error, target error) bool {
 	}
 
 	errxTarget, ok := target.(*Error)
-	if !ok || errxTarget.code == code.Nil {
+	if !ok || errxTarget.code == Nil {
 		return false
 	}
 
-	equal := false
-	walk(err, func(c code.ICode) bool {
-		if c == errxTarget.code {
-			equal = true
-			return false
-		}
-		return true
-	})
-
-	return equal
+	return IsCode(err, errxTarget.code)
 }
 
 // IsCode reports whether any error in err's tree matches target code.
-func IsCode(err error, target code.ICode) bool {
-	if err == nil {
-		return target == code.Nil
+func IsCode(err error, target Code) bool {
+	if err == nil && target == Nil {
+		return false
 	}
 
 	_, ok := err.(*Error)
 	if !ok {
-		return target == code.Nil
+		return false
 	}
 
 	equal := false
 
-	walk(err, func(c code.ICode) bool {
+	walk(err, func(c Code) bool {
 		if c == target {
 			equal = true
 			return false
@@ -63,7 +58,9 @@ func IsCode(err error, target code.ICode) bool {
 	return equal
 }
 
-func walk(err error, handler func(c code.ICode) bool) {
+// walk gets all codes in err tree layer by layer and puts it to handler.
+// it stops when handler returns false or there is no inner layer.
+func walk(err error, handler func(c Code) bool) {
 	e := err
 	for e != nil {
 		errxErr, ok := e.(*Error)
