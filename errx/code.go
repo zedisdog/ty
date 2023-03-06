@@ -1,13 +1,11 @@
 package errx
 
 const (
-	Nil      Code = -1
-	NotFound Code = 404
+	Nil Code = -1
 )
 
 var codeMap = map[Code]string{
-	Nil:      "nil code",
-	NotFound: "not found",
+	Nil: "nil code",
 }
 
 type Code int

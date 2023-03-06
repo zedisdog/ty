@@ -2,7 +2,6 @@ package gorm
 
 import (
 	"github.com/zedisdog/ty/database"
-	"github.com/zedisdog/ty/errx"
 	"gorm.io/gorm"
 	"reflect"
 )
@@ -17,7 +16,7 @@ func (d *Database) DB() *gorm.DB {
 }
 
 func (d *Database) Create(model interface{}) error {
-	return Wrap(d.db.Create(model).Error, "create failed")
+	return database.Wrap(d.db.Create(model).Error, "create failed")
 }
 
 func (d Database) Where(conditions ...database.Condition) database.IDatabase {
@@ -28,7 +27,7 @@ func (d Database) Where(conditions ...database.Condition) database.IDatabase {
 	for _, condition := range conditions {
 		db, err = (Condition)(condition).Apply(d.db)
 		if err != nil {
-			panic(Wrap(err, "condition apply failed"))
+			panic(database.Wrap(err, "condition apply failed"))
 		}
 	}
 	d.db = db.(*gorm.DB)
@@ -37,35 +36,35 @@ func (d Database) Where(conditions ...database.Condition) database.IDatabase {
 
 func (d *Database) Update(model interface{}, m map[string]interface{}) (count int64, err error) {
 	result := d.db.Model(model).Updates(m)
-	return result.RowsAffected, Wrap(result.Error, "update failed")
+	return result.RowsAffected, database.Wrap(result.Error, "update failed")
 }
 
 func (d *Database) Delete(model interface{}) error {
-	return Wrap(d.db.Delete(model).Error, "delete failed")
+	return database.Wrap(d.db.Delete(model).Error, "delete failed")
 }
 
 func (d *Database) First(model interface{}) (err error) {
 	err = d.db.First(&model).Error
 	if err == gorm.ErrRecordNotFound {
-		err = WrapWithCode(err, "not found", errx.NotFound)
+		err = database.WrapWithCode(err, "not found", database.NotFound)
 	} else {
-		err = Wrap(err, "find first record failed")
+		err = database.Wrap(err, "find first record failed")
 	}
 	return
 }
 
 func (d *Database) Find(list interface{}) (err error) {
-	return Wrap(d.db.Find(&list).Error, "get list failed")
+	return database.Wrap(d.db.Find(&list).Error, "get list failed")
 }
 
 func (d *Database) Page(page int, size int, list interface{}) (total int64, err error) {
 	t := reflect.TypeOf(list).Elem().Elem()
-	err = Wrap(d.db.Model(reflect.New(t)).Count(&total).Error, "get count failed")
+	err = database.Wrap(d.db.Model(reflect.New(t)).Count(&total).Error, "get count failed")
 	if err != nil {
 		return
 	}
 
-	err = Wrap(d.db.Offset((page-1)*size).Limit(size).Find(list).Error, "get page list failed")
+	err = database.Wrap(d.db.Offset((page-1)*size).Limit(size).Find(list).Error, "get page list failed")
 	return
 }
 

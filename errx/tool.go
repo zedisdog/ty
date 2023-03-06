@@ -2,6 +2,7 @@ package errx
 
 import (
 	"errors"
+	"fmt"
 )
 
 func Wrap(err error, msg string) error {
@@ -16,6 +17,12 @@ func WrapWithCode(err error, msg string, code Code) error {
 	e.err = err
 	e.code = code
 	return e
+}
+
+func MakeCodeWrapperWithPrefix(prefix string) func(error, string, Code) error {
+	return func(err error, s string, code Code) error {
+		return WrapWithCode(err, fmt.Sprintf("[%s]%s", prefix, s), code)
+	}
 }
 
 // Is reports whether any error in err's tree matches target.

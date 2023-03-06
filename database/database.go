@@ -1,5 +1,16 @@
 package database
 
+import "github.com/zedisdog/ty/errx"
+
+const NotFound = 404
+
+func init() {
+	err := errx.Register(NotFound, "not found")
+	if err != nil {
+		panic(err)
+	}
+}
+
 // Condition present database query condition
 //
 //	e.g:

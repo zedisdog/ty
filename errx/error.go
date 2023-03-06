@@ -75,7 +75,7 @@ func New(msg string) error {
 	}
 	var index int
 	for index = 0; index < len(newArr); index += 2 {
-		if !tyStrings.ContainersAny(newArr[index], []string{"zedisdog/ty/errx.New", "zedisdog/ty/errx.Wrap"}) {
+		if !tyStrings.ContainersAny(newArr[index], []string{"zedisdog/ty/errx.New", "zedisdog/ty/errx.Wrap", "zedisdog/ty/errx.Make"}) {
 			break
 		}
 	}
