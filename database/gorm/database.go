@@ -17,7 +17,7 @@ func (d *Database) DB() *gorm.DB {
 }
 
 func (d *Database) Create(model interface{}) error {
-	return d.db.Create(model).Error
+	return Wrap(d.db.Create(model).Error, "create failed")
 }
 
 func (d Database) Where(conditions ...database.Condition) database.IDatabase {
@@ -28,7 +28,7 @@ func (d Database) Where(conditions ...database.Condition) database.IDatabase {
 	for _, condition := range conditions {
 		db, err = (Condition)(condition).Apply(d.db)
 		if err != nil {
-			panic(errx.Wrap(err, "condition apply failed"))
+			panic(Wrap(err, "condition apply failed"))
 		}
 	}
 	d.db = db.(*gorm.DB)
@@ -37,31 +37,35 @@ func (d Database) Where(conditions ...database.Condition) database.IDatabase {
 
 func (d *Database) Update(model interface{}, m map[string]interface{}) (count int64, err error) {
 	result := d.db.Model(model).Updates(m)
-	return result.RowsAffected, result.Error
+	return result.RowsAffected, Wrap(result.Error, "update failed")
 }
 
 func (d *Database) Delete(model interface{}) error {
-	return d.db.Delete(model).Error
+	return Wrap(d.db.Delete(model).Error, "delete failed")
 }
 
 func (d *Database) First(model interface{}) (err error) {
 	err = d.db.First(&model).Error
+	if err == gorm.ErrRecordNotFound {
+		err = WrapWithCode(err, "not found", errx.NotFound)
+	} else {
+		err = Wrap(err, "find first record failed")
+	}
 	return
 }
 
 func (d *Database) Find(list interface{}) (err error) {
-	err = d.db.Find(&list).Error
-	return
+	return Wrap(d.db.Find(&list).Error, "get list failed")
 }
 
 func (d *Database) Page(page int, size int, list interface{}) (total int64, err error) {
 	t := reflect.TypeOf(list).Elem().Elem()
-	err = d.db.Model(reflect.New(t)).Count(&total).Error
+	err = Wrap(d.db.Model(reflect.New(t)).Count(&total).Error, "get count failed")
 	if err != nil {
 		return
 	}
 
-	err = d.db.Offset((page - 1) * size).Limit(size).Find(list).Error
+	err = Wrap(d.db.Offset((page-1)*size).Limit(size).Find(list).Error, "get page list failed")
 	return
 }
 
