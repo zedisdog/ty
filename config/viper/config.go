@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/zedisdog/ty/config"
 	"github.com/zedisdog/ty/errx"
+	"io"
 	"strings"
 )
 
@@ -100,4 +101,26 @@ func (c *Config) Load() {
 		panic(errx.Wrap(err, "[config]read config failed"))
 	}
 	c.v.AutomaticEnv()
+}
+
+func (c *Config) New(cfg interface{}) (conf config.IConfig, err error) {
+	v := viper.New()
+	switch c := cfg.(type) {
+	case io.Reader:
+		err = v.MergeConfig(c)
+	case map[string]interface{}:
+		err = v.MergeConfigMap(c)
+	default:
+		err = errx.New("config is invalid")
+	}
+
+	if err != nil {
+		return
+	}
+
+	conf = &Config{
+		v: v,
+	}
+
+	return
 }

@@ -1,3 +1,4 @@
 log:
   driver: zap
 modules:
+  module1:
