@@ -3,11 +3,14 @@ package application
 import (
 	"fmt"
 	"github.com/zedisdog/ty/config"
+	"github.com/zedisdog/ty/database"
+	"github.com/zedisdog/ty/database/gorm"
 	"github.com/zedisdog/ty/errx"
 	"github.com/zedisdog/ty/log"
 	"github.com/zedisdog/ty/log/zap"
 	"github.com/zedisdog/ty/server"
 	"github.com/zedisdog/ty/server/gin"
+	"github.com/zedisdog/ty/strings"
 	"os"
 	"os/signal"
 	"sync"
@@ -22,6 +25,7 @@ func GetInstance() *App {
 	once.Do(func() {
 		instance = &App{
 			httpServers: new(sync.Map),
+			databases:   new(sync.Map),
 		}
 	})
 
@@ -37,14 +41,27 @@ type App struct {
 	httpServers *sync.Map
 	Logger      log.ILog
 	modules     []IModule
+	databases   *sync.Map
 }
 
-// SetConfig set config to application.
-func SetConfig(config config.IConfig) {
-	GetInstance().SetConfig(config)
+// Init set config to application.
+func Init(config config.IConfig) {
+	GetInstance().Init(config)
 }
-func (app *App) SetConfig(config config.IConfig) {
+func (app *App) Init(config config.IConfig) {
 	app.Config = config
+
+	if logConfig := app.Config.Sub("log"); logConfig != nil {
+		app.initLog(app.Config.Sub("log"))
+	} else {
+		panic(errx.New("[application] there is no log config"))
+	}
+
+	if dbConfig := app.Config.Sub("database"); dbConfig != nil {
+		app.initDatabase(dbConfig)
+	} else {
+		app.Logger.Warn("[application] there is no database config")
+	}
 }
 
 // Bootstrap boot the application.
@@ -52,7 +69,6 @@ func Bootstrap() {
 	GetInstance().Bootstrap()
 }
 func (app *App) Bootstrap() {
-	app.initLog(app.Config.Sub("log"))
 	//app.bootModules(app.Config.Sub("modules"))
 }
 
@@ -62,6 +78,44 @@ func (app *App) initLog(config config.IConfig) {
 	switch driver {
 	case "zap":
 		app.Logger = zap.NewZapLog()
+	}
+	return
+}
+
+func (app *App) initDatabase(config config.IConfig) {
+	app.Logger.Info("[application] init database...")
+
+	for key, dbConfig := range config.AllSettings().(map[string]interface{}) {
+		var (
+			db  database.IDatabase
+			err error
+		)
+
+		if dbConfig == nil {
+			continue
+		}
+
+		c := dbConfig.(map[string]interface{})
+
+		enabled, ok := c["enabled"].(bool)
+		if ok && enabled {
+			db, err = app.newDB(c)
+			if err != nil {
+				panic(errx.Wrap(err, fmt.Sprintf("[application] create db instance <%s> failed", key)))
+			}
+		} else {
+			app.Logger.Debug("skipped db instance for not enabled", &log.Field{Name: "name", Value: key})
+			continue
+		}
+
+		app.databases.Store(key, db)
+	}
+}
+
+func (app *App) newDB(config map[string]interface{}) (db database.IDatabase, err error) {
+	switch config["driver"].(string) {
+	case "gorm":
+		db, err = gorm.NewDatabase(strings.EncodeQuery(config["dsn"].(string)))
 	}
 	return
 }
@@ -154,32 +208,32 @@ func (app *App) Wait(closeFunc ...func()) {
 	}
 }
 
-func (app *App) bootModules(config config.IConfig) {
-	for _, module := range app.modules {
-		if config.IsSet(module.Name()) {
-			err := module.Bootstrap(config.Sub(module.Name()))
-			if err != nil {
-				panic(errx.Wrap(err, "[app]boot module failed"))
-			}
-		}
-	}
-}
-
-func RegisterHttpServer(name string, server server.IHTTPServer) {
-	instance.RegisterHttpServer(name, server)
-}
-func (app *App) RegisterHttpServer(name string, server server.IHTTPServer) {
-	app.httpServers.Store(name, server)
-}
-
-func GetHttpServer(name string) server.IHTTPServer {
-	return instance.GetHttpServer(name)
-}
-func (app *App) GetHttpServer(name string) server.IHTTPServer {
-	v, exists := app.httpServers.Load(name)
-	if !exists {
-		return nil
-	}
-
-	return v.(server.IHTTPServer)
-}
+//func (app *App) bootModules(config config.IConfig) {
+//	for _, module := range app.modules {
+//		if config.IsSet(module.Name()) {
+//			err := module.Bootstrap(config.Sub(module.Name()))
+//			if err != nil {
+//				panic(errx.Wrap(err, "[app]boot module failed"))
+//			}
+//		}
+//	}
+//}
+//
+//func RegisterHttpServer(name string, server server.IHTTPServer) {
+//	instance.RegisterHttpServer(name, server)
+//}
+//func (app *App) RegisterHttpServer(name string, server server.IHTTPServer) {
+//	app.httpServers.Store(name, server)
+//}
+//
+//func GetHttpServer(name string) server.IHTTPServer {
+//	return instance.GetHttpServer(name)
+//}
+//func (app *App) GetHttpServer(name string) server.IHTTPServer {
+//	v, exists := app.httpServers.Load(name)
+//	if !exists {
+//		return nil
+//	}
+//
+//	return v.(server.IHTTPServer)
+//}

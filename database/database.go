@@ -1,6 +1,9 @@
 package database
 
-import "github.com/zedisdog/ty/errx"
+import (
+	"database/sql"
+	"github.com/zedisdog/ty/errx"
+)
 
 const NotFound = 404
 
@@ -32,4 +35,5 @@ type IDatabase interface {
 	// Page Finds multi record with pagination
 	Page(page int, size int, list interface{}) (total int64, err error)
 	Transaction(f func(IDatabase) error) error
+	RawDB() (*sql.DB, error)
 }

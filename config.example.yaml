@@ -7,3 +7,23 @@ default:
     port: 80
 modules:
   module1:
+    # 模块相关配置，自定义
+database:
+  # 默认数据库连接，如果没有write项，default读写，如果有write项，default读，write写
+  default:
+    enable: true
+    driver: gorm
+    dsn: ''
+  # 写服务器，保留
+  write:
+    enable: false
+    driver: gorm
+    dsn: ''
+  customerdb1:
+    enable: true
+    driver: gorm
+    dsn: ''
+  customerdb2:
+    enable: true
+    driver: gorm
+    dsn: ''

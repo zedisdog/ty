@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"database/sql"
 	"github.com/zedisdog/ty/database"
 	"gorm.io/gorm"
 	"reflect"
@@ -13,6 +14,10 @@ type Database struct {
 // DB get the gorm db instance
 func (d *Database) DB() *gorm.DB {
 	return d.db
+}
+
+func (d *Database) RawDB() (*sql.DB, error) {
+	return d.db.DB()
 }
 
 func (d *Database) Create(model interface{}) error {
