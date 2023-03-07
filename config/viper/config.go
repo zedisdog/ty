@@ -82,7 +82,7 @@ func (c *Config) GetStringMap(key string, def ...map[string]interface{}) map[str
 
 func (c *Config) Sub(key string) config.IConfig {
 	return &Config{
-		v: viper.Sub(key),
+		v: c.v.Sub(key),
 	}
 }
 
@@ -123,4 +123,8 @@ func (c *Config) New(cfg interface{}) (conf config.IConfig, err error) {
 	}
 
 	return
+}
+
+func (c *Config) AllSettings() interface{} {
+	return c.v.AllSettings()
 }

@@ -13,6 +13,7 @@ type IConfig interface {
 	New(cfg interface{}) (IConfig, error)
 	IsSet(key string) bool
 
+	AllSettings() interface{}
 	Get(key string, def ...interface{}) interface{}
 	GetString(key string, def ...string) string
 	GetInt(key string, def ...int) int

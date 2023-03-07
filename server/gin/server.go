@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func NewGenServer(addr string) server.IHTTPServer {
+func NewGinServer(addr string) server.IHTTPServer {
 	return &Server{
 		engine: gin.Default(),
 		srv: &http.Server{

@@ -33,6 +33,7 @@ func NewZapLog() log.ILog {
 		ErrorOutputPaths: []string{"stderr"},
 	}
 	z, err := zapConfig.Build()
+	z = z.WithOptions(zap.AddCallerSkip(1))
 	if err != nil {
 		panic(log.Wrap(err, "new zap failed"))
 	}
