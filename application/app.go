@@ -39,8 +39,15 @@ func GetInstance() *App {
 }
 
 type IApplication interface {
+	Init(config config.IConfig)
+	Boot()
+	RegisterModule(module IModule)
 	RegisterHttpServerRoute(f func(serverEngine interface{}) error)
 	RegisterMigrate(fs *embed.FS)
+	Database(name string) (db database.IDatabase)
+	Run()
+	Stop()
+	Wait(closeFunc ...func())
 }
 
 type App struct {
@@ -255,6 +262,19 @@ func RegisterMigrate(fs *embed.FS) {
 }
 func (app *App) RegisterMigrate(fs *embed.FS) {
 	app.migrates.Add(fs)
+}
+
+func Database(name string) database.IDatabase {
+	return GetInstance().Database(name)
+}
+func (app *App) Database(name string) (db database.IDatabase) {
+	d, ok := app.databases.Load(name)
+	if !ok {
+		return
+	}
+
+	db = d.(database.IDatabase)
+	return
 }
 
 //func (app *App) bootModules(config config.IConfig) {
