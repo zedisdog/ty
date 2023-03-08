@@ -6,17 +6,21 @@ import (
 	"gorm.io/gorm/callbacks"
 )
 
-var _ callbacks.BeforeCreateInterface = (*CommonField)(nil)
+var _ callbacks.BeforeCreateInterface = (*SnowflakeID)(nil)
 
 type CommonField struct {
-	ID        uint64 `json:"id,string" gorm:"primaryKey"`
-	CreatedAt int64  `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt int64  `json:"updated_at" gorm:"autoUpdateTime"`
+	SnowflakeID
+	CreatedAt int64 `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt int64 `json:"updated_at" gorm:"autoUpdateTime"`
 }
 
-func (a *CommonField) BeforeCreate(tx *gorm.DB) (err error) {
-	if a.ID == 0 {
-		a.ID, err = snowflake.NextID()
+type SnowflakeID struct {
+	ID uint64 `json:"id,string" gorm:"primaryKey"`
+}
+
+func (s *SnowflakeID) BeforeCreate(tx *gorm.DB) (err error) {
+	if s.ID == 0 {
+		s.ID, err = snowflake.NextID()
 	}
 	return
 }

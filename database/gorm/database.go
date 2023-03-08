@@ -76,6 +76,11 @@ func (d *Database) Update(model interface{}, m map[string]interface{}) (count in
 	return result.RowsAffected, database.Wrap(result.Error, "update failed")
 }
 
+func (d *Database) UpdateModel(model interface{}) (count int64, err error) {
+	result := d.db.Select("*").Updates(model)
+	return result.RowsAffected, database.Wrap(result.Error, "update failed")
+}
+
 func (d *Database) Delete(model interface{}) error {
 	return database.Wrap(d.db.Delete(model).Error, "delete failed")
 }

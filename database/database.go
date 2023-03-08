@@ -27,6 +27,7 @@ type IDatabase interface {
 	// Where Copy the instance and set query conditions
 	Where(conditions ...Condition) IDatabase
 	Update(interface{}, map[string]interface{}) (count int64, err error)
+	UpdateModel(model interface{}) (count int64, err error)
 	Delete(interface{}) error
 	// First finds one record
 	First(interface{}) error
