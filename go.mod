@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/gin-gonic/gin v1.9.0
 	github.com/golang-migrate/migrate/v4 v4.15.2
+	github.com/sony/sonyflake v1.1.0
 	github.com/spf13/viper v1.15.0
 	github.com/stretchr/testify v1.8.2
 	go.uber.org/zap v1.24.0

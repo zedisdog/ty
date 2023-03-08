@@ -3,9 +3,41 @@ package gorm
 import (
 	"database/sql"
 	"github.com/zedisdog/ty/database"
+	"github.com/zedisdog/ty/errx"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"reflect"
+	"strings"
 )
+
+func NewDatabase(dsn string) (DB database.IDatabase, err error) {
+	var (
+		config []string = strings.Split(dsn, "://")
+		db     *gorm.DB
+	)
+
+	switch config[0] {
+	case "mysql":
+		db, err = gorm.Open(mysql.Open(config[1]), &gorm.Config{})
+	case "sqlite":
+		fallthrough
+	case "sqlite3":
+		db, err = gorm.Open(sqlite.Open(config[1]), &gorm.Config{})
+	default:
+		err = errx.New("unsupported database type")
+	}
+
+	if err != nil {
+		err = database.Wrap(err, "connect database using gorm failed")
+		return
+	}
+
+	DB = &Database{
+		db: db,
+	}
+	return
+}
 
 type Database struct {
 	db *gorm.DB

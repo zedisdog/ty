@@ -28,7 +28,10 @@ type EmbedDriver struct {
 }
 
 func (e *EmbedDriver) Add(f fs.FS) {
-	dirEntries, _ := fs.ReadDir(f, ".")
+	dirEntries, err := fs.ReadDir(f, ".")
+	if err != nil {
+		panic(err)
+	}
 	for _, entry := range dirEntries {
 		// 取version
 		tmp, err := strconv.ParseUint(strings.Split(entry.Name(), "_")[0], 10, 64)

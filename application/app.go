@@ -1,10 +1,13 @@
 package application
 
 import (
+	"database/sql"
+	"embed"
 	"fmt"
 	"github.com/zedisdog/ty/config"
 	"github.com/zedisdog/ty/database"
 	"github.com/zedisdog/ty/database/gorm"
+	"github.com/zedisdog/ty/database/migrate"
 	"github.com/zedisdog/ty/errx"
 	"github.com/zedisdog/ty/log"
 	"github.com/zedisdog/ty/log/zap"
@@ -15,6 +18,8 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+
+	stdString "strings"
 )
 
 var instance *App
@@ -26,6 +31,7 @@ func GetInstance() *App {
 		instance = &App{
 			httpServers: new(sync.Map),
 			databases:   new(sync.Map),
+			migrates:    migrate.NewFsDriver(),
 		}
 	})
 
@@ -34,6 +40,7 @@ func GetInstance() *App {
 
 type IApplication interface {
 	RegisterHttpServerRoute(f func(serverEngine interface{}) error)
+	RegisterMigrate(fs *embed.FS)
 }
 
 type App struct {
@@ -42,6 +49,7 @@ type App struct {
 	Logger      log.ILog
 	modules     []IModule
 	databases   *sync.Map
+	migrates    *migrate.EmbedDriver
 }
 
 // Init set config to application.
@@ -62,14 +70,6 @@ func (app *App) Init(config config.IConfig) {
 	} else {
 		app.Logger.Warn("[application] there is no database config")
 	}
-}
-
-// Bootstrap boot the application.
-func Bootstrap() {
-	GetInstance().Bootstrap()
-}
-func (app *App) Bootstrap() {
-	//app.bootModules(app.Config.Sub("modules"))
 }
 
 func (app *App) initLog(config config.IConfig) {
@@ -102,6 +102,8 @@ func (app *App) initDatabase(config config.IConfig) {
 			db, err = app.newDB(c)
 			if err != nil {
 				panic(errx.Wrap(err, fmt.Sprintf("[application] create db instance <%s> failed", key)))
+			} else {
+				app.Logger.Info(fmt.Sprintf("[application] database <%s> inited", key))
 			}
 		} else {
 			app.Logger.Debug("skipped db instance for not enabled", &log.Field{Name: "name", Value: key})
@@ -110,6 +112,46 @@ func (app *App) initDatabase(config config.IConfig) {
 
 		app.databases.Store(key, db)
 	}
+}
+
+func (app *App) migrate() {
+	var (
+		migrator migrate.IMigrator = &migrate.DefaultMigrator{}
+		rawDB    *sql.DB
+		err      error
+		dbType   string
+	)
+
+	if db, ok := app.databases.Load("write"); ok {
+		rawDB, err = db.(database.IDatabase).RawDB()
+		dbType = stdString.Split(app.Config.GetString("database.write.dsn"), "://")[0]
+	} else if db, ok := app.databases.Load("default"); ok {
+		rawDB, err = db.(database.IDatabase).RawDB()
+		dbType = stdString.Split(app.Config.GetString("database.default.dsn"), "://")[0]
+	} else {
+		app.databases.Range(func(key, value any) bool {
+			rawDB, err = value.(database.IDatabase).RawDB()
+			dbType = stdString.Split(app.Config.GetString(fmt.Sprintf("database.%s.dsn", key)), "://")[0]
+			return false
+		})
+	}
+
+	if err != nil {
+		panic(err)
+	}
+
+	err = migrator.Migrate(dbType, rawDB, app.migrates)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// Boot boots the application.
+func Boot() {
+	GetInstance().Boot()
+}
+func (app *App) Boot() {
+	app.migrate()
 }
 
 func (app *App) newDB(config map[string]interface{}) (db database.IDatabase, err error) {
@@ -208,10 +250,17 @@ func (app *App) Wait(closeFunc ...func()) {
 	}
 }
 
+func RegisterMigrate(fs *embed.FS) {
+	GetInstance().migrates.Add(fs)
+}
+func (app *App) RegisterMigrate(fs *embed.FS) {
+	app.migrates.Add(fs)
+}
+
 //func (app *App) bootModules(config config.IConfig) {
 //	for _, module := range app.modules {
 //		if config.IsSet(module.Name()) {
-//			err := module.Bootstrap(config.Sub(module.Name()))
+//			err := module.Boot(config.Sub(module.Name()))
 //			if err != nil {
 //				panic(errx.Wrap(err, "[app]boot module failed"))
 //			}
