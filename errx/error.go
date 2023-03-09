@@ -10,15 +10,16 @@ import (
 )
 
 type Error struct {
-	code Code
-	msg  string
-	err  error
-	file string
-	line int
+	Code   Code
+	Msg    string
+	err    error
+	file   string
+	line   int
+	Detail interface{}
 }
 
 func (e Error) Error() string {
-	return e.msg
+	return e.Msg
 }
 
 func (e Error) Unwrap() error {
@@ -30,7 +31,7 @@ func (e Error) Format(s fmt.State, c rune) {
 	case 'v':
 		switch {
 		case s.Flag('+'):
-			_, _ = s.Write([]byte(fmt.Sprintf("%s:%d:%s\n", e.file, e.line, e.msg)))
+			_, _ = s.Write([]byte(fmt.Sprintf("%s:%d:%s\n", e.file, e.line, e.Msg)))
 		case s.Flag('#'):
 			strArr := []string{fmt.Sprintf("%+v", e)}
 
@@ -55,8 +56,14 @@ func (e Error) Format(s fmt.State, c rune) {
 	}
 }
 
+func WithDetail(detail interface{}) func(err *Error) {
+	return func(err *Error) {
+		err.Detail = detail
+	}
+}
+
 // New auto determine the caller and return error with msg.
-func New(msg string) error {
+func New(msg string, opts ...func(err *Error)) error {
 	// get call stack, and parse caller by it.
 	buf := make([]byte, 10240)
 	runtime.Stack(buf, false)
@@ -74,15 +81,21 @@ func New(msg string) error {
 		panic(err)
 	}
 
-	return &Error{
-		msg:  msg,
+	err = &Error{
+		Msg:  msg,
 		file: location[0],
 		line: line,
 	}
+
+	for _, set := range opts {
+		set(err.(*Error))
+	}
+
+	return err
 }
 
-func NewWithCode(msg string, code Code) error {
-	err := New(msg).(*Error)
-	err.code = code
+func NewWithCode(code Code, msg string, opts ...func(err *Error)) error {
+	err := New(msg, opts...).(*Error)
+	err.Code = code
 	return err
 }

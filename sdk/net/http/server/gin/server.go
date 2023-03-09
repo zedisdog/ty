@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/zedisdog/ty/log"
-	"github.com/zedisdog/ty/server"
+	"github.com/zedisdog/ty/sdk/net/http/server"
 	"net/http"
 	"time"
 )

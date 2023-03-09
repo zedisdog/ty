@@ -50,10 +50,10 @@ func TestWalk(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		if err == nil {
 			err = &Error{
-				code: Code(i),
+				Code: Code(i),
 			}
 		} else {
-			err = WrapWithCode(err, "", Code(i)).(*Error)
+			err = WrapWithCode(err, Code(i), "").(*Error)
 		}
 	}
 

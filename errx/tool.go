@@ -6,22 +6,22 @@ import (
 )
 
 func Wrap(err error, msg string) error {
-	return WrapWithCode(err, msg, Nil)
+	return WrapWithCode(err, Nil, msg)
 }
 
-func WrapWithCode(err error, msg string, code Code) error {
+func WrapWithCode(err error, code Code, msg string) error {
 	if err == nil {
 		return nil
 	}
 	e := New(msg).(*Error)
 	e.err = err
-	e.code = code
+	e.Code = code
 	return e
 }
 
 func MakeCodeWrapperWithPrefix(prefix string) func(error, string, Code) error {
 	return func(err error, s string, code Code) error {
-		return WrapWithCode(err, fmt.Sprintf("[%s]%s", prefix, s), code)
+		return WrapWithCode(err, code, fmt.Sprintf("[%s]%s", prefix, s))
 	}
 }
 
@@ -34,11 +34,11 @@ func Is(err error, target error) bool {
 	}
 
 	errxTarget, ok := target.(*Error)
-	if !ok || errxTarget.code == Nil {
+	if !ok || errxTarget.Code == Nil {
 		return false
 	}
 
-	return IsCode(err, errxTarget.code)
+	return IsCode(err, errxTarget.Code)
 }
 
 // IsCode reports whether any error in err's tree matches target code.
@@ -71,7 +71,7 @@ func walk(err error, handler func(c Code) bool) {
 	e := err
 	for e != nil {
 		errxErr, ok := e.(*Error)
-		if ok && !handler(errxErr.code) {
+		if ok && !handler(errxErr.Code) {
 			break
 		}
 

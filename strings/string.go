@@ -2,8 +2,10 @@ package strings
 
 import (
 	"fmt"
+	"math/rand"
 	"net/url"
 	"strings"
+	"time"
 )
 
 func ContainersAny(str string, substrs []string) bool {
@@ -35,4 +37,14 @@ func EncodeQuery(u string) string {
 			return u
 		}
 	}
+}
+
+func RandString(len int) string {
+	r := rand.New(rand.NewSource(time.Now().Unix()))
+	bytes := make([]byte, len)
+	for i := 0; i < len; i++ {
+		b := r.Intn(26) + 65
+		bytes[i] = byte(b)
+	}
+	return string(bytes)
 }
