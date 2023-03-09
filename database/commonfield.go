@@ -1,4 +1,4 @@
-package gorm
+package database
 
 import (
 	"github.com/zedisdog/ty/generate/snowflake"

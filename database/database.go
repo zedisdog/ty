@@ -1,42 +1,34 @@
 package database
 
 import (
-	"database/sql"
+	"fmt"
 	"github.com/zedisdog/ty/errx"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"strings"
 )
 
-const NotFound = 404
+func NewDatabase(dsn string) (db *gorm.DB, err error) {
+	var (
+		config = strings.Split(dsn, "://")
+	)
 
-func init() {
-	err := errx.Register(NotFound, "not found")
-	if err != nil {
-		panic(err)
+	switch config[0] {
+	case "mysql":
+		db, err = gorm.Open(mysql.Open(config[1]), &gorm.Config{})
+	case "sqlite":
+		fallthrough
+	case "sqlite3":
+		db, err = gorm.Open(sqlite.Open(config[1]), &gorm.Config{})
+	default:
+		err = errx.New("unsupported database type")
 	}
-}
 
-// Condition present database query condition
-//
-//	e.g:
-//		Condition{"field", "123"}:                 field = "123"
-//		Condition{"field", ">", 100}:              field > 100
-//		Condition{"filed1 = 100 OR field2 = 200"}: filed1 = 100 OR field2 = 200
-type Condition []interface{}
+	if err != nil {
+		err = errx.Wrap(err, fmt.Sprintf("[database] connect database using gorm failed"))
+		return
+	}
 
-type IDatabase interface {
-	Create(interface{}) error
-	// Where Copy the instance and set query conditions
-	Where(conditions ...Condition) IDatabase
-	Update(interface{}, map[string]interface{}) (count int64, err error)
-	UpdateModel(model interface{}) (count int64, err error)
-	Delete(interface{}) error
-	// First finds one record
-	First(interface{}) error
-	// Find finds multi record
-	Find(interface{}) error
-	// Page Finds multi record with pagination
-	Page(page int, size int, list interface{}) (total int64, err error)
-	Transaction(f func(IDatabase) error) error
-	RawDB() (*sql.DB, error)
-	Exec(sql string, args ...interface{}) IDatabase
-	Scan(model interface{}) error
+	return
 }

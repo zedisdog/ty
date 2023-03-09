@@ -1,12 +1,10 @@
 package application
 
 import (
-	"database/sql"
 	"embed"
 	"fmt"
 	"github.com/zedisdog/ty/config"
 	"github.com/zedisdog/ty/database"
-	"github.com/zedisdog/ty/database/gorm"
 	"github.com/zedisdog/ty/database/migrate"
 	"github.com/zedisdog/ty/errx"
 	"github.com/zedisdog/ty/log"
@@ -14,12 +12,11 @@ import (
 	"github.com/zedisdog/ty/sdk/net/http/server"
 	"github.com/zedisdog/ty/sdk/net/http/server/gin"
 	"github.com/zedisdog/ty/strings"
+	"gorm.io/gorm"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
-
-	stdString "strings"
 )
 
 var instance *App
@@ -44,7 +41,8 @@ type IApplication interface {
 	RegisterModule(module IModule)
 	RegisterHttpServerRoute(f func(serverEngine interface{}) error)
 	RegisterMigrate(fs *embed.FS)
-	Database(name string) (db database.IDatabase)
+	RegisterDatabase(name string, db interface{})
+	Database(name string) interface{}
 	Run()
 	Stop()
 	Wait(closeFunc ...func())
@@ -71,12 +69,6 @@ func (app *App) Init(config config.IConfig) {
 	} else {
 		panic(errx.New("[application] there is no log config"))
 	}
-
-	if dbConfig := app.Config.Sub("database"); dbConfig != nil {
-		app.initDatabase(dbConfig)
-	} else {
-		app.Logger.Warn("[application] there is no database config")
-	}
 }
 
 func (app *App) initLog(config config.IConfig) {
@@ -89,65 +81,25 @@ func (app *App) initLog(config config.IConfig) {
 	return
 }
 
-func (app *App) initDatabase(config config.IConfig) {
-	app.Logger.Info("[application] init database...")
-
-	for key, dbConfig := range config.AllSettings().(map[string]interface{}) {
-		var (
-			db  database.IDatabase
-			err error
-		)
-
-		if dbConfig == nil {
-			continue
-		}
-
-		c := dbConfig.(map[string]interface{})
-
-		enabled, ok := c["enabled"].(bool)
-		if ok && enabled {
-			db, err = app.newDB(c)
-			if err != nil {
-				panic(errx.Wrap(err, fmt.Sprintf("[application] create db instance <%s> failed", key)))
-			} else {
-				app.Logger.Info(fmt.Sprintf("[application] database <%s> inited", key))
-			}
-		} else {
-			app.Logger.Debug("skipped db instance for not enabled", &log.Field{Name: "name", Value: key})
-			continue
-		}
-
-		app.databases.Store(key, db)
+func (app *App) RegisterDatabase(name string, db interface{}) {
+	_, exists := app.databases.Load(name)
+	if exists {
+		panic(errx.New(fmt.Sprintf("database <%s> is already exists", name)))
 	}
+	app.databases.Store(name, db)
 }
 
 func (app *App) migrate() {
 	var (
 		migrator migrate.IMigrator = &migrate.DefaultMigrator{}
-		rawDB    *sql.DB
 		err      error
-		dbType   string
 	)
-
-	if db, ok := app.databases.Load("write"); ok {
-		rawDB, err = db.(database.IDatabase).RawDB()
-		dbType = stdString.Split(app.Config.GetString("database.write.dsn"), "://")[0]
-	} else if db, ok := app.databases.Load("default"); ok {
-		rawDB, err = db.(database.IDatabase).RawDB()
-		dbType = stdString.Split(app.Config.GetString("database.default.dsn"), "://")[0]
-	} else {
-		app.databases.Range(func(key, value any) bool {
-			rawDB, err = value.(database.IDatabase).RawDB()
-			dbType = stdString.Split(app.Config.GetString(fmt.Sprintf("database.%s.dsn", key)), "://")[0]
-			return false
-		})
-	}
 
 	if err != nil {
 		panic(err)
 	}
 
-	err = migrator.Migrate(dbType, rawDB, app.migrates)
+	err = migrator.Migrate(strings.EncodeQuery(app.Config.GetString("default.database.dsn")), app.migrates)
 	if err != nil {
 		panic(err)
 	}
@@ -161,12 +113,8 @@ func (app *App) Boot() {
 	app.migrate()
 }
 
-func (app *App) newDB(config map[string]interface{}) (db database.IDatabase, err error) {
-	switch config["driver"].(string) {
-	case "gorm":
-		db, err = gorm.NewDatabase(strings.EncodeQuery(config["dsn"].(string)))
-	}
-	return
+func (app *App) newDB(config map[string]interface{}) (db *gorm.DB, err error) {
+	return database.NewDatabase(strings.EncodeQuery(config["dsn"].(string)))
 }
 
 // RegisterModule register module to application.
@@ -264,16 +212,11 @@ func (app *App) RegisterMigrate(fs *embed.FS) {
 	app.migrates.Add(fs)
 }
 
-func Database(name string) database.IDatabase {
+func Database(name string) interface{} {
 	return GetInstance().Database(name)
 }
-func (app *App) Database(name string) (db database.IDatabase) {
-	d, ok := app.databases.Load(name)
-	if !ok {
-		return
-	}
-
-	db = d.(database.IDatabase)
+func (app *App) Database(name string) (db interface{}) {
+	db, _ = app.databases.Load(name)
 	return
 }
 
