@@ -37,4 +37,6 @@ type IDatabase interface {
 	Page(page int, size int, list interface{}) (total int64, err error)
 	Transaction(f func(IDatabase) error) error
 	RawDB() (*sql.DB, error)
+	Exec(sql string, args ...interface{}) IDatabase
+	Scan(model interface{}) error
 }

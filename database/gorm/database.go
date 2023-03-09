@@ -56,7 +56,7 @@ func (d *Database) Create(model interface{}) error {
 	return database.Wrap(d.db.Create(model).Error, "create failed")
 }
 
-func (d Database) Where(conditions ...database.Condition) database.IDatabase {
+func (d *Database) Where(conditions ...database.Condition) database.IDatabase {
 	var (
 		db  interface{}
 		err error
@@ -67,8 +67,10 @@ func (d Database) Where(conditions ...database.Condition) database.IDatabase {
 			panic(database.Wrap(err, "condition apply failed"))
 		}
 	}
-	d.db = db.(*gorm.DB)
-	return &d
+
+	return &Database{
+		db: db.(*gorm.DB),
+	}
 }
 
 func (d *Database) Update(model interface{}, m map[string]interface{}) (count int64, err error) {
@@ -116,4 +118,20 @@ func (d *Database) Transaction(f func(tx database.IDatabase) error) error {
 			db: tx,
 		})
 	})
+}
+
+func (d *Database) Exec(sql string, args ...interface{}) database.IDatabase {
+	return &Database{
+		db: d.db.Exec(sql, args...),
+	}
+}
+
+func (d *Database) Scan(model interface{}) (err error) {
+	err = d.db.Scan(model).Error
+	if err == gorm.ErrRecordNotFound {
+		err = database.WrapWithCode(err, "not found", database.NotFound)
+	} else {
+		err = database.Wrap(err, "find first record failed")
+	}
+	return
 }
