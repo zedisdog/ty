@@ -19,7 +19,11 @@ type Error struct {
 }
 
 func (e Error) Error() string {
-	return e.Msg
+	if e.err != nil {
+		return fmt.Sprintf("%s=>%s", e.Msg, e.err.Error())
+	} else {
+		return e.Msg
+	}
 }
 
 func (e Error) Unwrap() error {

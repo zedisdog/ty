@@ -38,20 +38,22 @@ func GetInstance() *App {
 type IApplication interface {
 	Init(config config.IConfig)
 	Boot()
+	Run()
+	Stop()
+	Wait(closeFunc ...func())
+
 	RegisterModule(module IModule)
 	RegisterHttpServerRoute(f func(serverEngine interface{}) error)
 	RegisterMigrate(fs *embed.FS)
 	RegisterDatabase(name string, db interface{})
 	Database(name string) interface{}
-	Run()
-	Stop()
-	Wait(closeFunc ...func())
+	Logger() log.ILog
 }
 
 type App struct {
 	Config      config.IConfig
 	httpServers *sync.Map
-	Logger      log.ILog
+	logger      log.ILog
 	modules     []IModule
 	databases   *sync.Map
 	migrates    *migrate.EmbedDriver
@@ -64,23 +66,39 @@ func Init(config config.IConfig) {
 func (app *App) Init(config config.IConfig) {
 	app.Config = config
 
-	if logConfig := app.Config.Sub("log"); logConfig != nil {
-		app.initLog(app.Config.Sub("log"))
-	} else {
-		panic(errx.New("[application] there is no log config"))
-	}
+	app.initLog(config.Sub("log"))
+	app.initDefaultDatabase(config.Sub("default.database"))
 }
 
 func (app *App) initLog(config config.IConfig) {
-	driver := config.GetString("driver", "zap")
-	fmt.Printf("[application] init log using %s...\n", driver)
-	switch driver {
-	case "zap":
-		app.Logger = zap.NewZapLog()
+	if config != nil {
+		driver := config.GetString("driver", "zap")
+		fmt.Printf("[application] init log using %s...\n", driver)
+		switch driver {
+		case "zap":
+			app.logger = zap.NewZapLog()
+		}
+	} else {
+		fmt.Printf("[application] log is not enabled\n")
 	}
-	return
 }
 
+func (app *App) initDefaultDatabase(config config.IConfig) {
+	if config != nil && config.GetBool("enable") {
+		app.logger.Info("[application] init default database...")
+		db, err := database.NewDatabase(strings.EncodeQuery(config.GetString("dsn")))
+		if err != nil {
+			panic(err)
+		}
+		app.RegisterDatabase("default", db)
+	} else {
+		app.logger.Warn("[application] default database is not enabled")
+	}
+}
+
+func RegisterDatabase(name string, db interface{}) {
+	GetInstance().RegisterDatabase(name, db)
+}
 func (app *App) RegisterDatabase(name string, db interface{}) {
 	_, exists := app.databases.Load(name)
 	if exists {
@@ -122,7 +140,7 @@ func RegisterModule(module IModule) {
 	GetInstance().RegisterModule(module)
 }
 func (app *App) RegisterModule(module IModule) {
-	app.Logger.Info("[application] register module", &log.Field{Name: "name", Value: module.Name()})
+	app.logger.Info("[application] register module", &log.Field{Name: "name", Value: module.Name()})
 	err := module.Register(app)
 	if err != nil {
 		panic(errx.Wrap(err, "[application] register module failed"))
@@ -139,7 +157,7 @@ func (app *App) RegisterHttpServerRoute(f func(serverEngine interface{}) error) 
 	if !ok {
 		def := app.Config.Sub("default.httpServer")
 		if def != nil && def.GetBool("enable") {
-			app.Logger.Info("[application] create default http server...")
+			app.logger.Info("[application] create default http server...")
 			svr = gin.NewGinServer(fmt.Sprintf(
 				"%s:%d",
 				def.GetString("host"),
@@ -147,7 +165,7 @@ func (app *App) RegisterHttpServerRoute(f func(serverEngine interface{}) error) 
 			))
 			app.httpServers.Store("default", svr)
 		} else {
-			app.Logger.Info("[application] no default http server specifies")
+			app.logger.Info("[application] no default http server specifies")
 			return
 		}
 	}
@@ -163,7 +181,7 @@ func Run() {
 }
 func (app *App) Run() {
 	app.httpServers.Range(func(key, value any) bool {
-		app.Logger.Info(
+		app.logger.Info(
 			"[application] run http server...",
 			&log.Field{Name: "name", Value: key},
 		)
@@ -177,13 +195,13 @@ func Stop() {
 }
 func (app *App) Stop() {
 	app.httpServers.Range(func(key, value any) bool {
-		app.Logger.Info(
+		app.logger.Info(
 			"[application] shutdown http server...",
 			&log.Field{Name: "name", Value: key},
 		)
 		err := value.(server.IHTTPServer).Shutdown()
 		if err != nil {
-			app.Logger.Error(
+			app.logger.Error(
 				"[application]shutdown http server error",
 				&log.Field{Name: "name", Value: key},
 				&log.Field{Name: "error", Value: err},
@@ -218,6 +236,13 @@ func Database(name string) interface{} {
 func (app *App) Database(name string) (db interface{}) {
 	db, _ = app.databases.Load(name)
 	return
+}
+
+func Logger() log.ILog {
+	return GetInstance().Logger()
+}
+func (app *App) Logger() log.ILog {
+	return app.logger
 }
 
 //func (app *App) bootModules(config config.IConfig) {

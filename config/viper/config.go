@@ -5,19 +5,36 @@ import (
 	"github.com/spf13/viper"
 	"github.com/zedisdog/ty/config"
 	"github.com/zedisdog/ty/errx"
-	"io"
 	"strings"
 )
 
-func NewConfig() config.IConfig {
-	return &Config{
-		v: viper.New(),
+func LoadEnv(enable bool) func(*Config) {
+	return func(c *Config) {
+		c.loadEnv = enable
 	}
 }
 
+// NewConfig new config based viper.
+//
+//	 default options:
+//			LoadEnv: true	//whether autoload environment variable
+func NewConfig(opts ...func(*Config)) *Config {
+	c := &Config{
+		v:       viper.New(),
+		loadEnv: true,
+	}
+
+	for _, set := range opts {
+		set(c)
+	}
+
+	return c
+}
+
 type Config struct {
-	v      *viper.Viper
-	config []byte
+	v       *viper.Viper
+	config  string
+	loadEnv bool
 }
 
 func (c *Config) IsSet(key string) bool {
@@ -86,44 +103,50 @@ func (c *Config) Sub(key string) config.IConfig {
 	}
 }
 
-func (c *Config) SetYml(config []byte) {
-	c.v.SetConfigType("yml")
-	c.config = config
+func (c *Config) SetConfigType(typeStr string) config.IConfig {
+	c.v.SetConfigType(typeStr)
+	return c
 }
 
-func (c *Config) SetEnvKeyReplacer(replacer *strings.Replacer) {
+func (c *Config) SetConfig(config string) config.IConfig {
+	c.config = config
+	return c
+}
+
+func (c *Config) SetEnvKeyReplacer(replacer *strings.Replacer) config.IConfig {
 	c.v.SetEnvKeyReplacer(replacer)
+	return c
 }
 
 func (c *Config) Load() {
-	err := c.v.ReadConfig(bytes.NewBuffer(c.config))
+	err := c.v.ReadConfig(bytes.NewBuffer([]byte(c.config)))
 	if err != nil {
 		panic(errx.Wrap(err, "[config]read config failed"))
 	}
 	c.v.AutomaticEnv()
 }
 
-func (c *Config) New(cfg interface{}) (conf config.IConfig, err error) {
-	v := viper.New()
-	switch c := cfg.(type) {
-	case io.Reader:
-		err = v.MergeConfig(c)
-	case map[string]interface{}:
-		err = v.MergeConfigMap(c)
-	default:
-		err = errx.New("config is invalid")
-	}
-
-	if err != nil {
-		return
-	}
-
-	conf = &Config{
-		v: v,
-	}
-
-	return
-}
+//func (c *Config) New(cfg interface{}) (conf config.IConfig, err error) {
+//	v := viper.New()
+//	switch c := cfg.(type) {
+//	case io.Reader:
+//		err = v.MergeConfig(c)
+//	case map[string]interface{}:
+//		err = v.MergeConfigMap(c)
+//	default:
+//		err = errx.New("config is invalid")
+//	}
+//
+//	if err != nil {
+//		return
+//	}
+//
+//	conf = &Config{
+//		v: v,
+//	}
+//
+//	return
+//}
 
 func (c *Config) AllSettings() interface{} {
 	return c.v.AllSettings()

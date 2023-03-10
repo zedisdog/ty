@@ -18,6 +18,14 @@ import (
 //		Condition{"filed1 = 100 OR field2 = 200"}: filed1 = 100 OR field2 = 200
 type Condition []interface{}
 
+func (c Condition) MustApply(db *gorm.DB) *gorm.DB {
+	newDB, err := c.Apply(db)
+	if err != nil {
+		panic(err)
+	}
+	return newDB
+}
+
 func (c Condition) Apply(db *gorm.DB) (newDB *gorm.DB, err error) {
 	if len(c) < 2 {
 		return db, errx.New("condition require at least 2 params")
@@ -56,6 +64,15 @@ func (c Condition) Apply(db *gorm.DB) (newDB *gorm.DB, err error) {
 }
 
 type Conditions []Condition
+
+func (cs Conditions) MustApply(db *gorm.DB) *gorm.DB {
+	newDB, err := cs.Apply(db)
+	if err != nil {
+		panic(err)
+	}
+
+	return newDB
+}
 
 func (cs Conditions) Apply(db *gorm.DB) (newDB *gorm.DB, err error) {
 	newDB = db

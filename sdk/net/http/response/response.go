@@ -1,7 +1,6 @@
 package response
 
 import (
-	"github.com/zedisdog/ty/database"
 	"gorm.io/gorm"
 	"math"
 	"net/http"
@@ -31,7 +30,7 @@ func Error(c *gin.Context, err error, status ...interface{}) {
 	if len(status) > 0 {
 		code = status[0].(int)
 	} else {
-		if errx.IsCode(err, database.NotFound) || errx.Is(err, gorm.ErrRecordNotFound) {
+		if errx.Is(err, gorm.ErrRecordNotFound) {
 			code = http.StatusNotFound
 		} else if er, ok := err.(*errx.Error); ok {
 			code = int(er.Code)
