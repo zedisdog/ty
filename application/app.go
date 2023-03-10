@@ -52,6 +52,9 @@ type IApplication interface {
 	Logger() log.ILog
 	Module(nameOrType interface{}) (module interface{})
 	Config() config.IConfig
+
+	SetComponent(key any, value any)
+	GetComponent(key any) any
 }
 
 type App struct {
@@ -61,6 +64,7 @@ type App struct {
 	modules     *sync.Map
 	databases   *sync.Map
 	migrates    *migrate.EmbedDriver
+	components  *sync.Map
 }
 
 // Init set config to application.
@@ -304,6 +308,21 @@ func Config() config.IConfig {
 }
 func (app *App) Config() config.IConfig {
 	return app.config
+}
+
+func SetComponent(key any, value any) {
+	GetInstance().SetComponent(key, value)
+}
+func (app *App) SetComponent(key any, value any) {
+	app.components.Store(key, value)
+}
+
+func GetComponent(key any) any {
+	return GetInstance().GetComponent(key)
+}
+func (app *App) GetComponent(key any) any {
+	v, _ := app.components.Load(key)
+	return v
 }
 
 //func (app *App) bootModules(config config.IConfig) {

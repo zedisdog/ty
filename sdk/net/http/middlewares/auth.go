@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/zedisdog/ty/sdk/net/http/response"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,17 +13,21 @@ import (
 )
 
 func NewAuthBuilder() *authBuilder {
-	return &authBuilder{}
+	return &authBuilder{
+		userIdentityFrom: []string{auth.JwtSubject},
+		tokenIDFrom:      auth.JwtID,
+		cacheClaims:      true,
+	}
 }
 
 // authBuilder auth middleware builder. it parses token with given conditions.
 type authBuilder struct {
 	userIdentityFrom []string                      //field name of user identity in token
 	tokenIDFrom      string                        //filed name of token identity in token
-	roleFrom         string                        //filed name of role name in token
 	userExists       func(id uint64) (bool, error) //function to determine if user exists
 	authKey          []byte                        //salt used by generate jwt signature
 	cacheClaims      bool                          //if cache claims into context
+	onPass           func(claims jwt.MapClaims, ctx *gin.Context) error
 }
 
 func (ab *authBuilder) WithUserIdentityFrom(jwtField ...string) *authBuilder {
@@ -35,8 +40,8 @@ func (ab *authBuilder) WithTokenIDFrom(jwtField string) *authBuilder {
 	return ab
 }
 
-func (ab *authBuilder) WithRoleFrom(jwtField string) *authBuilder {
-	ab.roleFrom = jwtField
+func (ab *authBuilder) WithOnPass(f func(claims jwt.MapClaims, ctx *gin.Context) error) *authBuilder {
+	ab.onPass = f
 	return ab
 }
 
@@ -129,16 +134,12 @@ func (ab *authBuilder) Build() func(ctx *gin.Context) {
 			ctx.Set("id", id)
 		}
 
-		if ab.roleFrom != "" {
-			var role interface{}
-			role, ok = claims[ab.roleFrom]
-			if !ok {
-				ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-					"message": "token is invalid7",
-				})
+		if ab.onPass != nil {
+			err = ab.onPass(claims, ctx)
+			if err != nil {
+				response.Error(ctx, err, http.StatusUnauthorized)
 				return
 			}
-			ctx.Set("role", role.(string))
 		}
 
 		if ab.cacheClaims {
