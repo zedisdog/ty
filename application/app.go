@@ -15,6 +15,7 @@ import (
 	"gorm.io/gorm"
 	"os"
 	"os/signal"
+	"reflect"
 	"sync"
 	"syscall"
 )
@@ -28,6 +29,7 @@ func GetInstance() *App {
 		instance = &App{
 			httpServers: new(sync.Map),
 			databases:   new(sync.Map),
+			modules:     new(sync.Map),
 			migrates:    migrate.NewFsDriver(),
 		}
 	})
@@ -42,19 +44,20 @@ type IApplication interface {
 	Stop()
 	Wait(closeFunc ...func())
 
-	RegisterModule(module IModule)
+	RegisterModule(module interface{})
 	RegisterHttpServerRoute(f func(serverEngine interface{}) error)
 	RegisterMigrate(fs *embed.FS)
 	RegisterDatabase(name string, db interface{})
 	Database(name string) interface{}
 	Logger() log.ILog
+	Module(nameOrType interface{}) (module interface{})
 }
 
 type App struct {
 	Config      config.IConfig
 	httpServers *sync.Map
 	logger      log.ILog
-	modules     []IModule
+	modules     *sync.Map
 	databases   *sync.Map
 	migrates    *migrate.EmbedDriver
 }
@@ -136,13 +139,14 @@ func Boot() {
 }
 func (app *App) Boot() {
 	app.migrate()
-	for _, module := range app.modules {
-		app.logger.Info(fmt.Sprintf("boot module <%s>...", module.Name()))
-		err := module.Boot(app)
+	app.modules.Range(func(key, module any) bool {
+		app.logger.Info(fmt.Sprintf("boot module <%s>...", module.(IModule).Name()))
+		err := module.(IModule).Boot(app)
 		if err != nil {
 			panic(err)
 		}
-	}
+		return true
+	})
 }
 
 func (app *App) newDB(config map[string]interface{}) (db *gorm.DB, err error) {
@@ -150,16 +154,23 @@ func (app *App) newDB(config map[string]interface{}) (db *gorm.DB, err error) {
 }
 
 // RegisterModule register module to application.
-func RegisterModule(module IModule) {
+func RegisterModule(module interface{}) {
 	GetInstance().RegisterModule(module)
 }
-func (app *App) RegisterModule(module IModule) {
-	app.logger.Info("[application] register module", &log.Field{Name: "name", Value: module.Name()})
-	err := module.Register(app)
+func (app *App) RegisterModule(module interface{}) {
+	m, ok := module.(IModule)
+	if !ok {
+		panic(errx.New("[application] invalid module"))
+	}
+
+	app.logger.Info(fmt.Sprintf("[application] register module <%s>...", m.Name()))
+	err := m.Register(app)
 	if err != nil {
 		panic(errx.Wrap(err, "[application] register module failed"))
 	}
-	app.modules = append(app.modules, module)
+
+	t := reflect.TypeOf(module)
+	app.modules.Store(t, module)
 }
 
 // RegisterHttpServerRoute register module routes to application.
@@ -257,6 +268,34 @@ func Logger() log.ILog {
 }
 func (app *App) Logger() log.ILog {
 	return app.logger
+}
+
+func ModuleByName(nameOrType interface{}) interface{} {
+	return GetInstance().Module(nameOrType)
+}
+func Module[T IModule]() T {
+	var typePtr *T
+	t := reflect.TypeOf(typePtr).Elem()
+	return GetInstance().Module(t).(T)
+}
+func (app *App) Module(nameOrType interface{}) (module interface{}) {
+	switch key := nameOrType.(type) {
+	case string:
+		app.modules.Range(func(k, value any) bool {
+			if value.(IModule).Name() == key {
+				module = value
+				return false
+			}
+			return true
+		})
+	case reflect.Type:
+		module, _ = app.modules.Load(key)
+	default:
+		t := reflect.TypeOf(nameOrType)
+		module, _ = app.modules.Load(t)
+	}
+
+	return
 }
 
 //func (app *App) bootModules(config config.IConfig) {
