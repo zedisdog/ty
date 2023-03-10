@@ -20,7 +20,7 @@ type Error struct {
 
 func (e Error) Error() string {
 	if e.err != nil {
-		return fmt.Sprintf("%s=>%s", e.Msg, e.err.Error())
+		return fmt.Sprintf("%s<=%s", e.Msg, e.err.Error())
 	} else {
 		return e.Msg
 	}

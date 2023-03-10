@@ -108,6 +108,13 @@ func (app *App) RegisterDatabase(name string, db interface{}) {
 }
 
 func (app *App) migrate() {
+	if !app.Config.GetBool("default.database.migrate") || !app.Config.GetBool("default.database.enable") {
+		app.logger.Info("[application] migrate is disabled")
+		return
+	}
+
+	app.logger.Info("[application] migrating...")
+
 	var (
 		migrator migrate.IMigrator = &migrate.DefaultMigrator{}
 		err      error
@@ -129,6 +136,13 @@ func Boot() {
 }
 func (app *App) Boot() {
 	app.migrate()
+	for _, module := range app.modules {
+		app.logger.Info(fmt.Sprintf("boot module <%s>...", module.Name()))
+		err := module.Boot(app)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func (app *App) newDB(config map[string]interface{}) (db *gorm.DB, err error) {
