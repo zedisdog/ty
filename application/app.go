@@ -51,10 +51,11 @@ type IApplication interface {
 	Database(name string) interface{}
 	Logger() log.ILog
 	Module(nameOrType interface{}) (module interface{})
+	Config() config.IConfig
 }
 
 type App struct {
-	Config      config.IConfig
+	config      config.IConfig
 	httpServers *sync.Map
 	logger      log.ILog
 	modules     *sync.Map
@@ -67,7 +68,7 @@ func Init(config config.IConfig) {
 	GetInstance().Init(config)
 }
 func (app *App) Init(config config.IConfig) {
-	app.Config = config
+	app.config = config
 
 	app.initLog(config.Sub("log"))
 	app.initDefaultDatabase(config.Sub("default.database"))
@@ -111,7 +112,7 @@ func (app *App) RegisterDatabase(name string, db interface{}) {
 }
 
 func (app *App) migrate() {
-	if !app.Config.GetBool("default.database.migrate") || !app.Config.GetBool("default.database.enable") {
+	if !app.config.GetBool("default.database.migrate") || !app.config.GetBool("default.database.enable") {
 		app.logger.Info("[application] migrate is disabled")
 		return
 	}
@@ -127,7 +128,7 @@ func (app *App) migrate() {
 		panic(err)
 	}
 
-	err = migrator.Migrate(strings.EncodeQuery(app.Config.GetString("default.database.dsn")), app.migrates)
+	err = migrator.Migrate(strings.EncodeQuery(app.config.GetString("default.database.dsn")), app.migrates)
 	if err != nil {
 		panic(err)
 	}
@@ -180,7 +181,7 @@ func RegisterHttpServerRoute(f func(serverEngine interface{}) error) {
 func (app *App) RegisterHttpServerRoute(f func(serverEngine interface{}) error) {
 	svr, ok := app.httpServers.Load("default")
 	if !ok {
-		def := app.Config.Sub("default.httpServer")
+		def := app.config.Sub("default.httpServer")
 		if def != nil && def.GetBool("enable") {
 			app.logger.Info("[application] create default http server...")
 			svr = gin.NewGinServer(fmt.Sprintf(
@@ -296,6 +297,13 @@ func (app *App) Module(nameOrType interface{}) (module interface{}) {
 	}
 
 	return
+}
+
+func Config() config.IConfig {
+	return GetInstance().Config()
+}
+func (app *App) Config() config.IConfig {
+	return app.config
 }
 
 //func (app *App) bootModules(config config.IConfig) {

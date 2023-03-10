@@ -126,7 +126,7 @@ func (c *Config) Load() {
 	c.v.AutomaticEnv()
 }
 
-//func (c *Config) New(cfg interface{}) (conf config.IConfig, err error) {
+//func (c *config) New(cfg interface{}) (conf config.IConfig, err error) {
 //	v := viper.New()
 //	switch c := cfg.(type) {
 //	case io.Reader:
@@ -141,7 +141,7 @@ func (c *Config) Load() {
 //		return
 //	}
 //
-//	conf = &Config{
+//	conf = &config{
 //		v: v,
 //	}
 //
