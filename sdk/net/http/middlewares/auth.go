@@ -60,7 +60,7 @@ func (ab *authBuilder) WithClaimsCache() *authBuilder {
 	return ab
 }
 
-func (ab *authBuilder) Build() func(ctx *gin.Context) {
+func (ab *authBuilder) Build() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var token string
 		if ctx.Request.Header.Get("Authorization") != "" {

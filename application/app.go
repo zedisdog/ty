@@ -11,6 +11,8 @@ import (
 	"github.com/zedisdog/ty/log/zap"
 	"github.com/zedisdog/ty/sdk/net/http/server"
 	"github.com/zedisdog/ty/sdk/net/http/server/gin"
+	"github.com/zedisdog/ty/storage"
+	"github.com/zedisdog/ty/storage/drivers"
 	"github.com/zedisdog/ty/strings"
 	"gorm.io/gorm"
 	"os"
@@ -30,6 +32,7 @@ func GetInstance() *App {
 			httpServers: new(sync.Map),
 			databases:   new(sync.Map),
 			modules:     new(sync.Map),
+			components:  new(sync.Map),
 			migrates:    migrate.NewFsDriver(),
 		}
 	})
@@ -49,6 +52,7 @@ type IApplication interface {
 	RegisterMigrate(fs *embed.FS)
 	RegisterDatabase(name string, db interface{})
 	Database(name string) interface{}
+	Storage() storage.IStorage
 	Logger() log.ILog
 	Module(nameOrType interface{}) (module interface{})
 	Config() config.IConfig
@@ -65,6 +69,7 @@ type App struct {
 	databases   *sync.Map
 	migrates    *migrate.EmbedDriver
 	components  *sync.Map
+	storage     storage.IStorage
 }
 
 // Init set config to application.
@@ -76,6 +81,32 @@ func (app *App) Init(config config.IConfig) {
 
 	app.initLog(config.Sub("log"))
 	app.initDefaultDatabase(config.Sub("default.database"))
+	app.initDefaultStorage(config.Sub("default.storage"))
+}
+
+func (app *App) initDefaultStorage(config config.IConfig) {
+	if config != nil {
+		app.logger.Info("[application] init default storage...")
+		var driver storage.IDriver
+		switch config.GetString("driver") {
+		case "local":
+			opts := []func(*drivers.LocalDriver){}
+			if config.GetString("access.scheme") != "" && config.GetString("access.domain") != "" {
+				opts = append(opts, drivers.WithBaseUrl(fmt.Sprintf(
+					"%s://%s",
+					config.GetString("access.scheme"),
+					config.GetString("access.domain"),
+				)))
+			}
+			driver = drivers.NewLocal(storage.NewPath(config.GetString("path")), opts...)
+		}
+
+		if driver == nil {
+			app.logger.Warn("[application] driver is not specified, disable storage")
+			return
+		}
+		app.storage = storage.NewStorage(driver)
+	}
 }
 
 func (app *App) initLog(config config.IConfig) {
@@ -323,6 +354,13 @@ func GetComponent(key any) any {
 func (app *App) GetComponent(key any) any {
 	v, _ := app.components.Load(key)
 	return v
+}
+
+func Storage() storage.IStorage {
+	return GetInstance().Storage()
+}
+func (app *App) Storage() storage.IStorage {
+	return app.storage
 }
 
 //func (app *App) bootModules(config config.IConfig) {
