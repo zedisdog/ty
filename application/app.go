@@ -85,7 +85,7 @@ func (app *App) Init(config config.IConfig) {
 }
 
 func (app *App) initDefaultStorage(config config.IConfig) {
-	if config != nil {
+	if config != nil && config.GetBool("enable") {
 		app.logger.Info("[application] init default storage...")
 		var driver storage.IDriver
 		switch config.GetString("driver") {

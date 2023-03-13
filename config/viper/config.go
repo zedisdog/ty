@@ -126,28 +126,6 @@ func (c *Config) Load() {
 	c.v.AutomaticEnv()
 }
 
-//func (c *config) New(cfg interface{}) (conf config.IConfig, err error) {
-//	v := viper.New()
-//	switch c := cfg.(type) {
-//	case io.Reader:
-//		err = v.MergeConfig(c)
-//	case map[string]interface{}:
-//		err = v.MergeConfigMap(c)
-//	default:
-//		err = errx.New("config is invalid")
-//	}
-//
-//	if err != nil {
-//		return
-//	}
-//
-//	conf = &config{
-//		v: v,
-//	}
-//
-//	return
-//}
-
 func (c *Config) AllSettings() interface{} {
 	return c.v.AllSettings()
 }

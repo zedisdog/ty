@@ -13,7 +13,7 @@ require (
 	github.com/iancoleman/strcase v0.2.0
 	github.com/jinzhu/copier v0.3.5
 	github.com/sony/sonyflake v1.1.0
-	github.com/spf13/viper v1.15.0
+	github.com/spf13/viper v1.15.1-0.20230225211736-3970ad177ecc
 	github.com/stretchr/testify v1.8.1
 	go.uber.org/zap v1.21.0
 	gorm.io/driver/mysql v1.4.7
