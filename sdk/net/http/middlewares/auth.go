@@ -118,7 +118,7 @@ func (ab *authBuilder) Build() gin.HandlerFunc {
 			if ab.userExists != nil {
 				exists, err := ab.userExists(id)
 				if err != nil {
-					ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 						"message": "token is invalid5",
 					})
 					return
