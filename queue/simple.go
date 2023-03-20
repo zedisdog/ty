@@ -24,41 +24,41 @@ type IQueueDriver interface {
 }
 
 // WithSize means channel's size. default 100.
-func WithSize(size int) func(*Queue) {
+func WithSize(size int) func(*SimpleQueue) {
 	if size < 0 {
 		panic(errx.New("size is invalid"))
 	}
-	return func(queue *Queue) {
+	return func(queue *SimpleQueue) {
 		queue.size = size
 	}
 }
 
 // WithLoadInterval means interval by which the queue load from storage. default 100 milliseconds.
-func WithLoadInterval(interval time.Duration) func(queue *Queue) {
+func WithLoadInterval(interval time.Duration) func(queue *SimpleQueue) {
 	if interval <= 0 {
 		panic(errx.New("interval is invalid"))
 	}
-	return func(queue *Queue) {
+	return func(queue *SimpleQueue) {
 		queue.loadInterval = interval
 	}
 }
 
 // WithStorage means extension storage used for store more data.
-func WithStorage(storage IQueueDriver) func(*Queue) {
-	return func(queue *Queue) {
+func WithStorage(storage IQueueDriver) func(*SimpleQueue) {
+	return func(queue *SimpleQueue) {
 		queue.storage = storage
 	}
 }
 
 // WithLogger means customize logger.
-func WithLogger(logger log.ILog) func(*Queue) {
-	return func(queue *Queue) {
+func WithLogger(logger log.ILog) func(*SimpleQueue) {
+	return func(queue *SimpleQueue) {
 		queue.logger = logger
 	}
 }
 
-func NewQueue(opts ...func(*Queue)) (q *Queue) {
-	q = &Queue{
+func NewQueue(opts ...func(*SimpleQueue)) (q *SimpleQueue) {
+	q = &SimpleQueue{
 		running:      new(atomic.Bool),
 		size:         100,
 		loadInterval: 100 * time.Millisecond,
@@ -69,7 +69,7 @@ func NewQueue(opts ...func(*Queue)) (q *Queue) {
 	q.cache = make(chan interface{}, q.size)
 
 	//If there's storage specified, load data from storage by interval.
-	//Any error return by Queue.replenish will cause goroutine break but not panic.
+	//Any error return by SimpleQueue.replenish will cause goroutine break but not panic.
 	if q.storage != nil {
 		go func() {
 			brak := false
@@ -96,13 +96,13 @@ func NewQueue(opts ...func(*Queue)) (q *Queue) {
 	return
 }
 
-// Queue simple memory queue.
+// SimpleQueue simple memory queue.
 //
-// The Queue struct has an interface{} channel as cache,
+// The SimpleQueue struct has an interface{} channel as cache,
 // therefore data will first in the memory, can be quick.
 // If channel is full, data can be put to any storage, which has implemented interface IQueueDriver, if specified.
 // So you can make another memory storage, or put them to database, you want.
-type Queue struct {
+type SimpleQueue struct {
 	cache        chan interface{}
 	storage      IQueueDriver  //extension storage
 	running      *atomic.Bool  //state of queue
@@ -111,7 +111,7 @@ type Queue struct {
 	logger       log.ILog
 }
 
-func (m *Queue) Log(msg string, level log.Level, fields ...*log.Field) {
+func (m *SimpleQueue) Log(msg string, level log.Level, fields ...*log.Field) {
 	if m.logger != nil {
 		m.logger.Log(fmt.Sprintf("[queue] %s", msg), level, fields...)
 	} else {
@@ -121,10 +121,10 @@ func (m *Queue) Log(msg string, level log.Level, fields ...*log.Field) {
 
 // Put puts the data to queue.
 //
-// It puts data to Queue.cache first, if Queue.cache is full, puts data to storage then, if exists.
+// It puts data to SimpleQueue.cache first, if SimpleQueue.cache is full, puts data to storage then, if exists.
 // When there has data in storage, it puts data to storage first to ensure the order.
-// If Queue.cache is full, and there's no storage, it blocks then.
-func (m *Queue) Put(data interface{}) (err error) {
+// If SimpleQueue.cache is full, and there's no storage, it blocks then.
+func (m *SimpleQueue) Put(data interface{}) (err error) {
 	if !m.running.Load() {
 		err = errx.New("chan is closed")
 		return
@@ -142,7 +142,7 @@ func (m *Queue) Put(data interface{}) (err error) {
 }
 
 // Pull pulls data from queue.
-func (m *Queue) Pull() (item interface{}, err error) {
+func (m *SimpleQueue) Pull() (item interface{}, err error) {
 	if !m.running.Load() {
 		err = errx.New("queue is closed")
 		return
@@ -156,12 +156,12 @@ func (m *Queue) Pull() (item interface{}, err error) {
 }
 
 // Chan Gets channel directly of queue.
-func (m *Queue) Chan() chan interface{} {
+func (m *SimpleQueue) Chan() chan interface{} {
 	return m.cache
 }
 
 // replenish puts data from storage to channel.
-func (m *Queue) replenish() (err error) {
+func (m *SimpleQueue) replenish() (err error) {
 	if m.storage != nil {
 		need := m.size - len(m.cache)
 		if m.storage.HasMore() && need > 0 {
@@ -182,7 +182,7 @@ func (m *Queue) replenish() (err error) {
 // Close closes the queue.
 //
 // If there's storage specified, it'll try to save back the data into storage.
-func (m *Queue) Close() (err error) {
+func (m *SimpleQueue) Close() (err error) {
 	m.running.Store(false)
 	close(m.cache)
 	if m.storage != nil {
