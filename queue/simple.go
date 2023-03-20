@@ -121,7 +121,7 @@ func (m *SimpleQueue) Log(msg string, level log.Level, fields ...*log.Field) {
 
 // Put puts the data to queue.
 //
-// It puts data to SimpleQueue.cache first, if SimpleQueue.cache is full, puts data to storage then, if exists.
+// It puts data to SimpleQueue.cache first, then if SimpleQueue.cache is full, puts data to storage then, if exists.
 // When there has data in storage, it puts data to storage first to ensure the order.
 // If SimpleQueue.cache is full, and there's no storage, it blocks then.
 func (m *SimpleQueue) Put(data interface{}) (err error) {
