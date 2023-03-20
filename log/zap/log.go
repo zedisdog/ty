@@ -77,3 +77,20 @@ func (l Log) Error(msg string, fields ...*log.Field) {
 func (l Log) Fatal(msg string, fields ...*log.Field) {
 	l.zap.Fatal(msg, l.convertFields(fields)...)
 }
+
+func (l Log) Log(msg string, level log.Level, fields ...*log.Field) {
+	switch level {
+	case log.Trace:
+		l.Trace(msg, fields...)
+	case log.Debug:
+		l.Debug(msg, fields...)
+	case log.Info:
+		l.Info(msg, fields...)
+	case log.Warn:
+		l.Warn(msg, fields...)
+	case log.Error:
+		l.Error(msg, fields...)
+	case log.Fatal:
+		l.Fatal(msg, fields...)
+	}
+}
