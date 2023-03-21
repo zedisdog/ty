@@ -34,6 +34,7 @@ func GetInstance() *App {
 			modules:     new(sync.Map),
 			components:  new(sync.Map),
 			migrates:    migrate.NewFsDriver(),
+			onStop:      make([]func(), 0),
 		}
 	})
 
@@ -44,13 +45,13 @@ type IApplication interface {
 	Init(config config.IConfig)
 	Boot()
 	Run()
-	Stop()
 	Wait(closeFunc ...func())
 
 	RegisterModule(module interface{})
 	RegisterHttpServerRoute(f func(serverEngine interface{}) error)
 	RegisterMigrate(fs *embed.FS)
 	RegisterDatabase(name string, db interface{})
+	RegisterStopFunc(f func())
 	Database(name string) interface{}
 	Storage() storage.IStorage
 	Logger() log.ILog
@@ -70,6 +71,7 @@ type App struct {
 	migrates    *migrate.EmbedDriver
 	components  *sync.Map
 	storage     storage.IStorage
+	onStop      []func()
 }
 
 // Init set config to application.
@@ -82,6 +84,7 @@ func (app *App) Init(config config.IConfig) {
 	app.initLog(config.Sub("log"))
 	app.initDefaultDatabase(config.Sub("default.database"))
 	app.initDefaultStorage(config.Sub("default.storage"))
+	app.RegisterStopFunc(app.stop)
 }
 
 func (app *App) initDefaultStorage(config config.IConfig) {
@@ -251,10 +254,7 @@ func (app *App) Run() {
 	})
 }
 
-func Stop() {
-	GetInstance().Stop()
-}
-func (app *App) Stop() {
+func (app *App) stop() {
 	app.httpServers.Range(func(key, value any) bool {
 		app.logger.Info(
 			"[application] shutdown http server...",
@@ -279,7 +279,7 @@ func (app *App) Wait(closeFunc ...func()) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGKILL)
 	<-c
-	for _, cls := range closeFunc {
+	for _, cls := range append(app.onStop, closeFunc...) {
 		cls()
 	}
 }
@@ -361,6 +361,13 @@ func Storage() storage.IStorage {
 }
 func (app *App) Storage() storage.IStorage {
 	return app.storage
+}
+
+func RegisterStopFunc(f func()) {
+	GetInstance().RegisterStopFunc(f)
+}
+func (app *App) RegisterStopFunc(f func()) {
+	app.onStop = append(app.onStop, f)
 }
 
 //func (app *App) bootModules(config config.IConfig) {
