@@ -35,6 +35,7 @@ func GetInstance() *App {
 			components:  new(sync.Map),
 			migrates:    migrate.NewFsDriver(),
 			onStop:      make([]func(), 0),
+			seeders:     make([]func(app IApplication) error, 0),
 		}
 	})
 
@@ -51,6 +52,7 @@ type IApplication interface {
 	RegisterHttpServerRoute(f func(serverEngine interface{}) error)
 	RegisterMigrate(fs *embed.FS)
 	RegisterDatabase(name string, db interface{})
+	RegisterSeeder(...func(app IApplication) error)
 	RegisterStopFunc(f func())
 	Database(name string) interface{}
 	Storage() storage.IStorage
@@ -69,6 +71,7 @@ type App struct {
 	modules     *sync.Map
 	databases   *sync.Map
 	migrates    *migrate.EmbedDriver
+	seeders     []func(app IApplication) error
 	components  *sync.Map
 	storage     storage.IStorage
 	onStop      []func()
@@ -172,12 +175,28 @@ func (app *App) migrate() {
 	}
 }
 
+func (app *App) seed() {
+	if !app.config.GetBool("default.database.migrate") || !app.config.GetBool("default.database.enable") {
+		return
+	}
+
+	app.logger.Info("[application] seeding...")
+
+	for _, seeder := range app.seeders {
+		err := seeder(app)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
 // Boot boots the application.
 func Boot() {
 	GetInstance().Boot()
 }
 func (app *App) Boot() {
 	app.migrate()
+	app.seed()
 	app.modules.Range(func(key, module any) bool {
 		app.logger.Info(fmt.Sprintf("boot module <%s>...", module.(IModule).Name()))
 		err := module.(IModule).Boot(app)
@@ -289,6 +308,17 @@ func RegisterMigrate(fs *embed.FS) {
 }
 func (app *App) RegisterMigrate(fs *embed.FS) {
 	app.migrates.Add(fs)
+}
+
+func RegisterSeeder(seeders ...func(app IApplication) error) {
+	GetInstance().RegisterSeeder(seeders...)
+}
+func (app *App) RegisterSeeder(seeders ...func(app IApplication) error) {
+	if len(seeders) < 1 {
+		return
+	}
+
+	app.seeders = append(app.seeders, seeders...)
 }
 
 func Database(name string) interface{} {

@@ -1,6 +1,9 @@
 package types
 
-import "github.com/gogf/gf/v2/util/gconv"
+import (
+	"database/sql/driver"
+	"github.com/gogf/gf/v2/util/gconv"
+)
 
 // NullUint64 represents an uint64 that may be null.
 // NullUint64 implements the Scanner interface, so
@@ -19,4 +22,12 @@ func (n *NullUint64) Scan(value any) error {
 	n.Valid = true
 	n.Uint64 = gconv.Uint64(value)
 	return nil
+}
+
+// Value implements the driver Valuer interface.
+func (n NullUint64) Value() (driver.Value, error) {
+	if !n.Valid {
+		return nil, nil
+	}
+	return n.Uint64, nil
 }
