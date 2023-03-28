@@ -24,6 +24,8 @@ type TypeGets interface {
 type IConfig interface {
 	SetConfig(pathOrContent string) IConfig
 
+	Set(key string, value interface{})
+
 	// Load loads all config. panic if there is error.
 	Load()
 	Sub(key string) IConfig

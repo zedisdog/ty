@@ -16,6 +16,7 @@ require (
 	github.com/sony/sonyflake v1.1.0
 	github.com/spf13/viper v1.15.1-0.20230225211736-3970ad177ecc
 	github.com/stretchr/testify v1.8.2
+	github.com/tidwall/gjson v1.14.4
 	go.uber.org/zap v1.21.0
 	gorm.io/driver/mysql v1.4.7
 	gorm.io/driver/sqlite v1.4.4
@@ -53,6 +54,8 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go v1.2.11 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
