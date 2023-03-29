@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"github.com/tidwall/gjson"
 	"io"
 	"net/http/httptest"
-
-	"github.com/tidwall/gjson"
 )
 
 type TestResponse struct {
@@ -15,13 +14,23 @@ type TestResponse struct {
 }
 
 func (t TestResponse) ParseBody(v interface{}) {
-	body, err := io.ReadAll(t.ResponseRecorder.Body)
+	err := json.Unmarshal(t.Body(), v)
 	if err != nil {
 		panic(err)
 	}
-	err = json.Unmarshal(body, v)
-	if err != nil {
-		panic(err)
+}
+
+func (t TestResponse) ParseField(field string, v interface{}) {
+	switch vv := v.(type) {
+	case *string:
+		*vv = t.Get(field).String()
+	case *int64:
+		*vv = t.Get(field).Int()
+	default:
+		err := json.Unmarshal([]byte(t.Get(field).String()), v)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 

@@ -7,14 +7,18 @@ import (
 	"reflect"
 )
 
+type IHasDatabase interface {
+	Database(name string) (db interface{})
+}
+
 type IHasComponent interface {
 	SetComponent(key any, value any)
 	GetComponent(key any) any
-	Database(name string) (db interface{})
 	Logger() log.ILog
 	Module(nameOrType interface{}) (module interface{})
 	Config() config.IConfig
 	Storage() storage.IStorage
+	IHasDatabase
 }
 
 func SetComponent(key any, value any) {

@@ -22,6 +22,7 @@ type ICanTest interface {
 	WithHeader(header http.Header) ICanTest
 	ActingAs(id uint64, claims ...map[string]interface{}) ICanTest
 	TestSuit(f func(h ICanTest))
+	IHasDatabase
 }
 
 func (app App) WithHeader(header http.Header) ICanTest {
