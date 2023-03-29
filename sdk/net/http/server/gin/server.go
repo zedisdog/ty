@@ -43,3 +43,7 @@ func (s Server) Shutdown() error {
 
 	return s.srv.Shutdown(ctx)
 }
+
+func (s Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	s.engine.ServeHTTP(res, req)
+}

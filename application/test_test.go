@@ -2,7 +2,6 @@ package application
 
 import (
 	"reflect"
-	"sync"
 	"testing"
 )
 
@@ -19,13 +18,10 @@ func (sa saya) say() {
 }
 
 func TestNormal(t *testing.T) {
-	m := new(sync.Map)
-	m.Store("say", &saya{content: "a"})
-
-	o, _ := m.Load("say")
+	o := interface{}(&saya{content: "a"})
 	old := reflect.ValueOf(o).Elem().Interface()
 
-	reflect.ValueOf(o).Elem().Set(reflect.ValueOf(&saya{content: "b"}).Elem())
+	reflect.ValueOf(o).Elem().Set(reflect.ValueOf(interface{}(&saya{content: "b"})).Elem())
 	o.(isay).say()
 
 	reflect.ValueOf(o).Elem().Set(reflect.ValueOf(old))

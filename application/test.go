@@ -117,21 +117,28 @@ func (app App) ActingAs(id uint64, claims ...map[string]interface{}) ICanTest {
 	return app.WithHeader(map[string][]string{"Authorization": {fmt.Sprintf("Bearer %s", token)}})
 }
 
-type IHasTransaction interface {
-	Begin() IHasTransaction
-	Rollback()
+func TestSuit(f func(h ICanTest)) {
+	GetInstance().TestSuit(f)
 }
-
 func (app *App) TestSuit(f func(h ICanTest)) {
 	app.config.Set("mode", "testing")
-	old := reflect.ValueOf(app.Database("default")).Elem().Interface()
+	//数据库的引用，比如 *gorm.DB
+	pDB := app.Database("default")
 
-	reflect.ValueOf(app.Database("default")).Elem().
-		Set(reflect.ValueOf(old.(IHasTransaction).Begin()).Elem())
+	//拷贝了一份值
+	old := reflect.ValueOf(pDB).Elem().Interface()
+
+	//调用Begin方法, 如果没有这个方法说明有问题, 它自己会panic
+	tx := reflect.ValueOf(pDB).MethodByName("Begin").Call(nil)[0]
+
+	//把pDB引用指向的值替换成tx
+	reflect.ValueOf(pDB).Elem().Set(tx.Elem())
 
 	f(app)
 
-	app.Database("default").(IHasTransaction).Rollback()
-	reflect.ValueOf(app.Database("default")).Elem().
-		Set(reflect.ValueOf(old))
+	//tx.Rollback
+	tx.MethodByName("Rollback").Call(nil)
+
+	//再把pDB引用指向的值替换回来, 无事发生
+	reflect.ValueOf(pDB).Elem().Set(reflect.ValueOf(old))
 }

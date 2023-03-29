@@ -103,6 +103,10 @@ func (c *Config) Sub(key string) config.IConfig {
 	}
 }
 
+func (c *Config) Set(key string, value any) {
+	c.v.Set(key, value)
+}
+
 func (c *Config) SetConfigType(typeStr string) config.IConfig {
 	c.v.SetConfigType(typeStr)
 	return c
