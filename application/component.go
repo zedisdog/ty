@@ -36,8 +36,8 @@ func (app *App) GetComponent(key any) any {
 	return v
 }
 
-func Database(name string) interface{} {
-	return GetInstance().Database(name)
+func Database[T any](name string) T {
+	return GetInstance().Database(name).(T)
 }
 func (app *App) Database(name string) (db interface{}) {
 	db, _ = app.databases.Load(name)
