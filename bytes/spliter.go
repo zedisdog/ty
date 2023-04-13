@@ -32,3 +32,24 @@ func SplitByHeadAndFoot(head, foot []byte) bufio.SplitFunc {
 		return 0, nil, nil
 	}
 }
+
+// SplitByFoot 用于scan,参数为结束标识
+func SplitByFoot(foot []byte) bufio.SplitFunc {
+	return func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		if atEOF && len(data) == 0 {
+			return 0, nil, nil
+		}
+
+		if i := bytes.Index(data, foot); i >= 0 {
+			// We have a full newline-terminated line.
+			return i + len(foot), data[:i+len(foot)], nil
+		}
+
+		// If we're at EOF, we have a final, non-terminated line. Return it.
+		if atEOF {
+			return 0, nil, bufio.ErrFinalToken
+		}
+		// Request more data.
+		return 0, nil, nil
+	}
+}

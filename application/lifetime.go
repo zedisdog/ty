@@ -143,11 +143,14 @@ func (app *App) RegisterHttpServerRoute(f func(serverEngine interface{}) error) 
 		def := app.config.Sub("default.httpServer")
 		if def != nil && def.GetBool("enable") {
 			app.logger.Info("[application] create default http server...")
-			svr = gin.NewGinServer(fmt.Sprintf(
-				"%s:%d",
-				def.GetString("host"),
-				def.GetInt("port"),
-			))
+			svr = gin.NewGinServer(
+				fmt.Sprintf(
+					"%s:%d",
+					def.GetString("host"),
+					def.GetInt("port"),
+				),
+				gin.EnablePprof(def.GetBool("enablePprof")),
+			)
 			app.httpServers.Store("default", svr)
 		} else {
 			app.logger.Info("[application] no default http server specifies")

@@ -6,22 +6,42 @@ import (
 	"github.com/zedisdog/ty/log"
 	"github.com/zedisdog/ty/sdk/net/http/server"
 	"net/http"
+	"net/http/pprof"
 	"time"
 )
 
-func NewGinServer(addr string) server.IHTTPServer {
-	return &Server{
+func EnablePprof(enable bool) func(svr *Server) {
+	return func(svr *Server) {
+		svr.enablePprof = enable
+	}
+}
+
+func NewGinServer(addr string, options ...func(svr *Server)) server.IHTTPServer {
+	svr := &Server{
 		engine: gin.Default(),
 		srv: &http.Server{
 			Addr: addr,
 		},
+		enablePprof: false,
 	}
+	for _, option := range options {
+		option(svr)
+	}
+
+	if svr.enablePprof {
+		svr.engine.GET("/debug/pprof/*action", func(c *gin.Context) {
+			pprof.Index(c.Writer, c.Request)
+		})
+	}
+
+	return svr
 }
 
 type Server struct {
-	engine *gin.Engine
-	srv    *http.Server
-	logger log.ILog
+	engine      *gin.Engine
+	srv         *http.Server
+	logger      log.ILog
+	enablePprof bool
 }
 
 func (s Server) RegisterRoutes(f func(serverEngine interface{}) error) error {
