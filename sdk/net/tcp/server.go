@@ -8,6 +8,7 @@ import (
 	"github.com/zedisdog/ty/log"
 	"net"
 	"sync"
+	"time"
 )
 
 var errClose = errx.New("close")
@@ -150,6 +151,7 @@ func (s *Server) watch(conn *net.TCPConn, scanner *bufio.Scanner, index int) {
 			s.connLock.Unlock()
 			s.Log("close", log.Warn, log.NewField("error", err))
 		}
+		time.Sleep(1 * time.Second)
 	}
 }
 
