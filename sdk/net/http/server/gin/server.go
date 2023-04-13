@@ -30,7 +30,18 @@ func NewGinServer(addr string, options ...func(svr *Server)) server.IHTTPServer 
 
 	if svr.enablePprof {
 		svr.engine.GET("/debug/pprof/*action", func(c *gin.Context) {
-			pprof.Index(c.Writer, c.Request)
+			switch c.Param("action") {
+			case "/cmdline":
+				pprof.Cmdline(c.Writer, c.Request)
+			case "/profile":
+				pprof.Profile(c.Writer, c.Request)
+			case "/symbol":
+				pprof.Symbol(c.Writer, c.Request)
+			case "/trace":
+				pprof.Trace(c.Writer, c.Request)
+			default:
+				pprof.Index(c.Writer, c.Request)
+			}
 		})
 	}
 
