@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/zedisdog/ty/log"
+	"github.com/zedisdog/ty/sdk/net/http/middlewares"
 	"github.com/zedisdog/ty/sdk/net/http/server"
 	"net/http"
 	"net/http/pprof"
@@ -24,6 +25,9 @@ func NewGinServer(addr string, options ...func(svr *Server)) server.IHTTPServer 
 		},
 		enablePprof: false,
 	}
+
+	svr.engine.Use(middlewares.Cros)
+
 	for _, option := range options {
 		option(svr)
 	}
