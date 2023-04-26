@@ -70,6 +70,7 @@ func (ab *authBuilder) Build() gin.HandlerFunc {
 				return
 			}
 			token = arr[1]
+		} else if token, _ = ctx.Cookie("token"); token != "" {
 		} else if ctx.Query("token") != "" {
 			token = ctx.Query("token")
 		} else {
