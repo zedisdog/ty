@@ -30,7 +30,7 @@ func (app App) WithHeader(header http.Header) ICanTest {
 	return &app
 }
 
-func (app App) Request(method string, path string, header http.Header, body io.Reader) (w *TestResponse, req *http.Request) {
+func (app *App) Request(method string, path string, header http.Header, body io.Reader) (w *TestResponse, req *http.Request) {
 	w = &TestResponse{ResponseRecorder: httptest.NewRecorder()}
 	req = httptest.NewRequest(method, path, body)
 	req.Header = app.mergeHeader(
@@ -47,15 +47,15 @@ func (app App) Request(method string, path string, header http.Header, body io.R
 	return
 }
 
-func (app App) Get(path string) (*TestResponse, *http.Request) {
+func (app *App) Get(path string) (*TestResponse, *http.Request) {
 	return app.Request(http.MethodGet, path, app.header, nil)
 }
 
-func (app App) Delete(path string) (*TestResponse, *http.Request) {
+func (app *App) Delete(path string) (*TestResponse, *http.Request) {
 	return app.Request(http.MethodDelete, path, app.header, nil)
 }
 
-func (app App) Post(path string, data any) (*TestResponse, *http.Request) {
+func (app *App) Post(path string, data any) (*TestResponse, *http.Request) {
 	body, err := app.buildBody(data)
 	if err != nil {
 		panic(err)
@@ -64,7 +64,7 @@ func (app App) Post(path string, data any) (*TestResponse, *http.Request) {
 	return app.Request(http.MethodPost, path, app.header, body)
 }
 
-func (app App) Put(path string, data any) (*TestResponse, *http.Request) {
+func (app *App) Put(path string, data any) (*TestResponse, *http.Request) {
 	body, err := app.buildBody(data)
 	if err != nil {
 		panic(err)
@@ -73,7 +73,7 @@ func (app App) Put(path string, data any) (*TestResponse, *http.Request) {
 	return app.Request(http.MethodPut, path, app.header, body)
 }
 
-func (app App) buildBody(data any) (body io.Reader, err error) {
+func (app *App) buildBody(data any) (body io.Reader, err error) {
 	if data == nil {
 		return
 	}
@@ -92,7 +92,7 @@ func (app App) buildBody(data any) (body io.Reader, err error) {
 	return
 }
 
-func (app App) mergeHeader(origin http.Header, delta http.Header) http.Header {
+func (app *App) mergeHeader(origin http.Header, delta http.Header) http.Header {
 	if origin == nil {
 		origin = make(http.Header)
 	}

@@ -33,6 +33,7 @@ type IApplication interface {
 	ILifetime
 	IHasComponent
 	ICanTest
+	IHasScheduler
 }
 
 type App struct {

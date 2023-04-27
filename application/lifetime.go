@@ -238,6 +238,7 @@ func (app *App) stop() {
 		}
 		return true
 	})
+	app.CloseScheduler()
 }
 
 func Wait(closeFunc ...func()) {

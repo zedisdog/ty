@@ -3,12 +3,18 @@ package application
 import (
 	"github.com/zedisdog/ty/config"
 	"github.com/zedisdog/ty/log"
+	"github.com/zedisdog/ty/scheduler"
 	"github.com/zedisdog/ty/storage"
 	"reflect"
 )
 
 type IHasDatabase interface {
 	Database(name string) (db interface{})
+}
+
+type IHasScheduler interface {
+	RegisterJob(job *scheduler.Job)
+	CloseScheduler()
 }
 
 type IHasComponent interface {
@@ -19,6 +25,26 @@ type IHasComponent interface {
 	Config() config.IConfig
 	Storage() storage.IStorage
 	IHasDatabase
+}
+
+func RegisterJob(job *scheduler.Job) {
+	GetInstance().RegisterJob(job)
+}
+func (app *App) RegisterJob(job *scheduler.Job) {
+	s := app.GetComponent("scheduler").(*scheduler.Scheduler)
+	if s == nil {
+		s = scheduler.NewScheduler(app.logger)
+		app.SetComponent("scheduler", s)
+	}
+
+	s.Register(job)
+}
+
+func (app *App) CloseScheduler() {
+	s := app.GetComponent("scheduler").(*scheduler.Scheduler)
+	if s != nil {
+		s.Close()
+	}
 }
 
 func SetComponent(key any, value any) {

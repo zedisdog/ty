@@ -10,6 +10,7 @@ require (
 	github.com/gogf/gf/v2 v2.3.3
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/golang-migrate/migrate/v4 v4.15.2
+	github.com/golang-module/carbon/v2 v2.2.3
 	github.com/golang/mock v1.6.0
 	github.com/iancoleman/strcase v0.2.0
 	github.com/jinzhu/copier v0.3.5
