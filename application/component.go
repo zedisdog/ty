@@ -31,13 +31,13 @@ func RegisterJob(job *scheduler.Job) {
 	GetInstance().RegisterJob(job)
 }
 func (app *App) RegisterJob(job *scheduler.Job) {
-	s := app.GetComponent("scheduler").(*scheduler.Scheduler)
+	s := app.GetComponent("scheduler")
 	if s == nil {
 		s = scheduler.NewScheduler(app.logger)
 		app.SetComponent("scheduler", s)
 	}
 
-	s.Register(job)
+	s.(*scheduler.Scheduler).Register(job)
 }
 
 func (app *App) CloseScheduler() {
