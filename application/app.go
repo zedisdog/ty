@@ -22,7 +22,7 @@ func GetInstance() *App {
 			components:  new(sync.Map),
 			migrates:    migrate.NewFsDriver(),
 			onStop:      make([]func(), 0),
-			seeders:     make([]func(app IApplication) error, 0),
+			seeders:     make([]func() error, 0),
 		}
 	})
 
@@ -43,7 +43,7 @@ type App struct {
 	modules     *sync.Map
 	databases   *sync.Map
 	migrates    *migrate.EmbedDriver
-	seeders     []func(app IApplication) error
+	seeders     []func() error
 	components  *sync.Map
 	storage     storage.IStorage
 	onStop      []func()

@@ -54,8 +54,8 @@ func (app *App) SetComponent(key any, value any) {
 	app.components.Store(key, value)
 }
 
-func GetComponent(key any) any {
-	return GetInstance().GetComponent(key)
+func GetComponent[T any](key any) T {
+	return GetInstance().GetComponent(key).(T)
 }
 func (app *App) GetComponent(key any) any {
 	v, _ := app.components.Load(key)

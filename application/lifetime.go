@@ -114,17 +114,13 @@ func (app *App) RegisterDatabase(name string, db interface{}) {
 }
 
 // RegisterModule register module to application.
-func RegisterModule(module interface{}) {
+func RegisterModule(module IModule) {
 	GetInstance().RegisterModule(module)
 }
-func (app *App) RegisterModule(module interface{}) {
-	m, ok := module.(IModule)
-	if !ok {
-		panic(errx.New("[application] invalid module"))
-	}
+func (app *App) RegisterModule(module IModule) {
 
-	app.logger.Info(fmt.Sprintf("[application] register module <%s>...", m.Name()))
-	err := m.Register(app)
+	app.logger.Info(fmt.Sprintf("[application] register module <%s>...", module.Name()))
+	err := module.Register()
 	if err != nil {
 		panic(errx.Wrap(err, "[application] register module failed"))
 	}
@@ -171,10 +167,10 @@ func (app *App) RegisterMigrate(fs *embed.FS) {
 	app.migrates.Add(fs)
 }
 
-func RegisterSeeder(seeders ...func(app IApplication) error) {
+func RegisterSeeder(seeders ...func() error) {
 	GetInstance().RegisterSeeder(seeders...)
 }
-func (app *App) RegisterSeeder(seeders ...func(app IApplication) error) {
+func (app *App) RegisterSeeder(seeders ...func() error) {
 	if len(seeders) < 1 {
 		return
 	}
@@ -200,7 +196,7 @@ func (app *App) Boot() {
 	app.seed()
 	app.modules.Range(func(key, module any) bool {
 		app.logger.Info(fmt.Sprintf("boot module <%s>...", module.(IModule).Name()))
-		err := module.(IModule).Boot(app)
+		err := module.(IModule).Boot()
 		if err != nil {
 			panic(err)
 		}
@@ -257,7 +253,6 @@ func (app *App) Wait(closeFunc ...func()) {
 
 func (app *App) migrate() {
 	if !app.config.GetBool("default.database.migrate") || !app.config.GetBool("default.database.enable") {
-		app.logger.Info("[application] migrate is disabled")
 		return
 	}
 
@@ -286,7 +281,7 @@ func (app *App) seed() {
 	app.logger.Info("[application] seeding...")
 
 	for _, seeder := range app.seeders {
-		err := seeder(app)
+		err := seeder()
 		if err != nil {
 			panic(err)
 		}
