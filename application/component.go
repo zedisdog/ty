@@ -9,7 +9,7 @@ import (
 )
 
 type IHasDatabase interface {
-	Database(name string) (db interface{})
+	Database(name ...string) (db interface{})
 }
 
 type IHasScheduler interface {
@@ -62,11 +62,25 @@ func (app *App) GetComponent(key any) any {
 	return v
 }
 
-func Database[T any](name string) T {
-	return GetInstance().Database(name).(T)
+func Database[T any](name ...string) T {
+	return GetInstance().Database(name...).(T)
 }
-func (app *App) Database(name string) (db interface{}) {
-	db, _ = app.databases.Load(name)
+func (app *App) Database(name ...string) (db interface{}) {
+	count := 0
+	app.databases.Range(func(key, value any) bool {
+		count++
+		db = value
+		return true
+	})
+
+	if count == 0 || count == 1 {
+		return
+	}
+
+	if len(name) > 0 {
+		db, _ = app.databases.Load(name[0])
+	}
+
 	return
 }
 
