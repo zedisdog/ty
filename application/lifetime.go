@@ -24,10 +24,10 @@ import (
 type ILifetime interface {
 	Init(config config.IConfig)
 	RegisterDatabase(name string, db interface{})
-	RegisterModule(module interface{})
+	RegisterModule(module IModule)
 	RegisterHttpServerRoute(f func(serverEngine interface{}) error)
 	RegisterMigrate(fs *embed.FS)
-	RegisterSeeder(seeders ...func(app IApplication) error)
+	RegisterSeeder(seeders ...func() error)
 	RegisterStopFunc(f func())
 	Boot()
 	Run()
