@@ -4,7 +4,6 @@ import (
 	"github.com/zedisdog/ty/config"
 	"github.com/zedisdog/ty/database/migrate"
 	"github.com/zedisdog/ty/log"
-	"github.com/zedisdog/ty/storage"
 	"net/http"
 	"sync"
 )
@@ -23,6 +22,7 @@ func GetInstance() *App {
 			migrates:    migrate.NewFsDriver(),
 			onStop:      make([]func(), 0),
 			seeders:     make([]func() error, 0),
+			storages:    new(sync.Map),
 		}
 	})
 
@@ -34,10 +34,18 @@ type IApplication interface {
 	IHasComponent
 	ICanTest
 	IHasScheduler
+	IHasDatabase
+	IHasModule
+	IHasConfig
+	IHasStorage
+	IHasLogger
+	IHasHttpServer
 }
 
+var _ IApplication = (*App)(nil)
+
 type App struct {
-	config      config.IConfig
+	config      *config.Config
 	httpServers *sync.Map
 	logger      log.ILog
 	modules     *sync.Map
@@ -45,10 +53,37 @@ type App struct {
 	migrates    *migrate.EmbedDriver
 	seeders     []func() error
 	components  *sync.Map
-	storage     storage.IStorage
+	storages    *sync.Map
 	onStop      []func()
 
 	/*************test**************/
 
 	header http.Header
+}
+
+func (app *App) getValueOrDefault(m *sync.Map, name ...string) (value any) {
+	if len(name) > 0 {
+		value, _ = m.Load(name[0])
+	}
+	if value != nil {
+		return
+	}
+
+	value, ok := m.Load("default")
+	if ok {
+		return
+	}
+
+	count := 0
+	app.databases.Range(func(key, v any) bool {
+		count++
+		value = v
+		return true
+	})
+
+	if count == 1 {
+		return
+	} else {
+		return nil
+	}
 }

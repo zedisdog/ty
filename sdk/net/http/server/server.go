@@ -1,8 +1,8 @@
 package server
 
-type IHTTPServer interface {
+type IHTTPServer[T any] interface {
 	// RegisterRoutes register routes to server
-	RegisterRoutes(func(serverEngine interface{}) error) error
+	RegisterRoutes(func(engine T) error) error
 	// Run starts server with non-blocking.
 	Run()
 	// Shutdown shutdowns server. Graceful will be best.

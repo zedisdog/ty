@@ -17,7 +17,7 @@ func EnablePprof(enable bool) func(svr *Server) {
 	}
 }
 
-func NewGinServer(addr string, options ...func(svr *Server)) server.IHTTPServer {
+func NewGinServer(addr string, options ...func(svr *Server)) server.IHTTPServer[*gin.Engine] {
 	svr := &Server{
 		engine: gin.Default(),
 		srv: &http.Server{
@@ -59,7 +59,7 @@ type Server struct {
 	enablePprof bool
 }
 
-func (s Server) RegisterRoutes(f func(serverEngine interface{}) error) error {
+func (s Server) RegisterRoutes(f func(engine *gin.Engine) error) error {
 	return f(s.engine)
 }
 
