@@ -2,7 +2,6 @@ package application
 
 import (
 	"github.com/zedisdog/ty/config"
-	"github.com/zedisdog/ty/database/migrate"
 	"github.com/zedisdog/ty/log"
 	"net/http"
 	"sync"
@@ -19,10 +18,10 @@ func GetInstance() *App {
 			databases:   new(sync.Map),
 			modules:     new(sync.Map),
 			components:  new(sync.Map),
-			migrates:    migrate.NewFsDriver(),
 			onStop:      make([]func(), 0),
 			seeders:     make([]func() error, 0),
 			storages:    new(sync.Map),
+			migrators:   new(sync.Map),
 		}
 	})
 
@@ -40,6 +39,7 @@ type IApplication interface {
 	IHasStorage
 	IHasLogger
 	IHasHttpServer
+	IHasMigrator
 }
 
 var _ IApplication = (*App)(nil)
@@ -50,7 +50,7 @@ type App struct {
 	logger      log.ILog
 	modules     *sync.Map
 	databases   *sync.Map
-	migrates    *migrate.EmbedDriver
+	migrators   *sync.Map
 	seeders     []func() error
 	components  *sync.Map
 	storages    *sync.Map

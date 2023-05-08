@@ -1,12 +1,9 @@
 package application
 
 import (
-	"embed"
 	"fmt"
 	"github.com/zedisdog/ty/config"
-	"github.com/zedisdog/ty/database/migrate"
 	"github.com/zedisdog/ty/log"
-	"github.com/zedisdog/ty/strings"
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,7 +11,6 @@ import (
 
 type ILifetime interface {
 	Init(config *config.Config)
-	RegisterMigrate(fs *embed.FS)
 	RegisterSeeder(seeders ...func() error)
 	RegisterStopFunc(f func())
 	Boot()
@@ -33,30 +29,13 @@ func (app *App) Init(config *config.Config) {
 
 	app.initLog()
 	app.initDefaultDatabase()
+	app.initDefaultMigrator()
 	app.initDefaultStorage()
 	app.initDefaultHttpServer()
 	app.RegisterStopFunc(app.stop)
 }
 
 /****************************************register***********************************/
-
-func RegisterMigrate(fs *embed.FS) {
-	GetInstance().migrates.Add(fs)
-}
-func (app *App) RegisterMigrate(fs *embed.FS) {
-	app.migrates.Add(fs)
-}
-
-func RegisterSeeder(seeders ...func() error) {
-	GetInstance().RegisterSeeder(seeders...)
-}
-func (app *App) RegisterSeeder(seeders ...func() error) {
-	if len(seeders) < 1 {
-		return
-	}
-
-	app.seeders = append(app.seeders, seeders...)
-}
 
 func RegisterStopFunc(f func()) {
 	GetInstance().RegisterStopFunc(f)
@@ -126,44 +105,5 @@ func (app *App) Wait(closeFunc ...func()) {
 	<-c
 	for _, cls := range append(app.onStop, closeFunc...) {
 		cls()
-	}
-}
-
-/******************************************************************************************/
-
-func (app *App) migrate() {
-	if !app.config.GetBool("default.database.migrate") || !app.config.GetBool("default.database.enable") {
-		return
-	}
-
-	app.logger.Info("[application] migrating...")
-
-	var (
-		migrator migrate.IMigrator = &migrate.DefaultMigrator{}
-		err      error
-	)
-
-	if err != nil {
-		panic(err)
-	}
-
-	err = migrator.Migrate(strings.EncodeQuery(app.config.GetString("default.database.dsn")), app.migrates)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (app *App) seed() {
-	if !app.config.GetBool("default.database.migrate") || !app.config.GetBool("default.database.enable") {
-		return
-	}
-
-	app.logger.Info("[application] seeding...")
-
-	for _, seeder := range app.seeders {
-		err := seeder()
-		if err != nil {
-			panic(err)
-		}
 	}
 }
