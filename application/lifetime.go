@@ -2,15 +2,16 @@ package application
 
 import (
 	"fmt"
-	"github.com/zedisdog/ty/config"
-	"github.com/zedisdog/ty/log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/zedisdog/ty/config"
+	"github.com/zedisdog/ty/log"
 )
 
 type ILifetime interface {
-	Init(config *config.Config)
+	Init(config config.IConfig)
 	RegisterSeeder(seeders ...func() error)
 	RegisterStopFunc(f func())
 	Boot()
@@ -21,10 +22,10 @@ type ILifetime interface {
 /*********************************init*********************************************/
 
 // Init set config to application.
-func Init(config *config.Config) {
+func Init(config config.IConfig) {
 	GetInstance().Init(config)
 }
-func (app *App) Init(config *config.Config) {
+func (app *App) Init(config config.IConfig) {
 	app.SetConfig(config)
 
 	app.initLog()

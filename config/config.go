@@ -2,11 +2,28 @@ package config
 
 import (
 	"bytes"
-	"github.com/spf13/viper"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
-func NewConfigWithBytesContent(configType string, content []byte, opts ...func(*Config)) *Config {
+type IConfig interface {
+	Get(key string, def ...interface{}) interface{}
+	GetString(key string, def ...string) string
+	GetInt(key string, def ...int) int
+	GetBool(key string, def ...bool) bool
+	GetIntSlice(key string, def ...[]int) []int
+	GetStringSlice(key string, def ...[]string) []string
+	GetStringMap(key string, def ...map[string]interface{}) map[string]interface{}
+	Sub(key string) *Config
+	SetConfigType(typeStr string) *Config
+	SetEnvKeyReplacer(replacer *strings.Replacer) *Config
+	LoadBytes(content []byte) error
+	LoadString(content string) error
+	LoadEnv()
+}
+
+func NewWithBytesContent(configType string, content []byte, opts ...func(*Config)) IConfig {
 	c := NewConfig(opts...)
 	c.SetConfigType(configType)
 	err := c.LoadBytes(content)

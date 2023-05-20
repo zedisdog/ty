@@ -1,10 +1,11 @@
 package application
 
 import (
-	"github.com/zedisdog/ty/config"
-	"github.com/zedisdog/ty/log"
 	"net/http"
 	"sync"
+
+	"github.com/zedisdog/ty/config"
+	"github.com/zedisdog/ty/log"
 )
 
 var instance *App
@@ -45,7 +46,7 @@ type IApplication interface {
 var _ IApplication = (*App)(nil)
 
 type App struct {
-	config      *config.Config
+	config      config.IConfig
 	httpServers *sync.Map
 	logger      log.ILog
 	modules     *sync.Map
