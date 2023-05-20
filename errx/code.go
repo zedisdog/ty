@@ -1,5 +1,7 @@
 package errx
 
+import "github.com/zedisdog/ty/i18n"
+
 const (
 	Nil Code = -1
 )
@@ -24,8 +26,21 @@ func (code Code) IsPreDefined() bool {
 // Message gets meaning of code
 //
 //	Returns: empty means the code is none predefined code
-func (code Code) Message() string {
-	return codeMap[code]
+func (code Code) Message(lang ...string) string {
+	l := i18n.DefaultLang
+	if len(lang) > 0 {
+		l = lang[0]
+	}
+
+	text := codeMap[code]
+
+	msg := i18n.Translate(l, text)
+
+	if msg == "" {
+		return codeMap[code]
+	} else {
+		return msg
+	}
 }
 
 // Register registers the code as predefined code
