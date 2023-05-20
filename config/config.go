@@ -21,6 +21,7 @@ type IConfig interface {
 	LoadBytes(content []byte) error
 	LoadString(content string) error
 	LoadEnv()
+	Set(key string, value interface{})
 }
 
 func NewWithBytesContent(configType string, content []byte, opts ...func(*Config)) IConfig {
@@ -51,6 +52,10 @@ func NewConfig(opts ...func(*Config)) *Config {
 
 type Config struct {
 	*viper.Viper
+}
+
+func (c *Config) Set(key string, value interface{}) {
+	c.Viper.Set(key, value)
 }
 
 func (c *Config) Get(key string, def ...interface{}) interface{} {

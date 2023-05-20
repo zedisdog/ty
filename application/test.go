@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/gogf/gf/v2/util/gconv"
-	"github.com/zedisdog/ty/auth"
-	"github.com/zedisdog/ty/errx"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+
+	"github.com/gogf/gf/v2/util/gconv"
+	"github.com/zedisdog/ty/auth"
+	"github.com/zedisdog/ty/errx"
 )
 
 type ICanTest interface {
