@@ -1,7 +1,9 @@
 package application
 
 import (
+	"errors"
 	"fmt"
+	migrate2 "github.com/golang-migrate/migrate/v4"
 	"github.com/zedisdog/ty/database/migrate"
 	"github.com/zedisdog/ty/strings"
 )
@@ -43,7 +45,7 @@ func (app *App) migrate() {
 	app.migrators.Range(func(name, value any) bool {
 		app.logger.Info(fmt.Sprintf("migrator %s up...", name.(string)))
 		err := value.(migrate.IMigrator).Migrate()
-		if err != nil {
+		if err != nil && !errors.Is(err, migrate2.ErrNoChange) {
 			panic(err)
 		}
 		return true

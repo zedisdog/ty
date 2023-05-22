@@ -34,7 +34,7 @@ func (code Code) Message(lang ...string) string {
 
 	text := codeMap[code]
 
-	msg := i18n.Translate(l, text)
+	msg := i18n.TranslateByLang(l, text)
 
 	if msg == "" {
 		return codeMap[code]

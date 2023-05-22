@@ -16,6 +16,15 @@ func RegisterTranslate(lang string, text string, translate string) {
 	translations[lang][text] = translate
 }
 
-func Translate(lang string, text string) string {
-	return translations[lang][text]
+func Translate(text string) string {
+	return TranslateByLang(DefaultLang, text)
+}
+
+func TranslateByLang(lang string, text string) string {
+	t := translations[lang][text]
+	if t == "" {
+		return text
+	} else {
+		return t
+	}
 }

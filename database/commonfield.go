@@ -15,7 +15,7 @@ type CommonField struct {
 }
 
 type SnowflakeID struct {
-	ID uint64 `json:"id,string" gorm:"primaryKey"`
+	ID uint64 `json:"id,string" gorm:"primaryKey;autoIncrement:false"`
 }
 
 func (s *SnowflakeID) BeforeCreate(tx *gorm.DB) (err error) {

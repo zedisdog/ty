@@ -76,7 +76,7 @@ func (app *App) getValueOrDefault(m *sync.Map, name ...string) (value any) {
 	}
 
 	count := 0
-	app.databases.Range(func(key, v any) bool {
+	m.Range(func(key, v any) bool {
 		count++
 		value = v
 		return true
