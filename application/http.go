@@ -36,6 +36,7 @@ func (app *App) initDefaultHttpServer() {
 				config.GetInt("port"),
 			),
 			gin.EnablePprof(config.GetBool("enablePprof")),
+			gin.WithLogger(app.logger),
 		)
 		app.httpServers.Store("default", svr)
 	}

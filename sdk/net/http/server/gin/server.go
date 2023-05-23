@@ -16,6 +16,12 @@ func EnablePprof(enable bool) func(svr *Server) {
 	}
 }
 
+func WithLogger(logger log.ILog) func(svr *Server) {
+	return func(svr *Server) {
+		svr.logger = logger
+	}
+}
+
 func NewGinServer(addr string, options ...func(svr *Server)) server.IHTTPServer[*gin.Engine] {
 	svr := &Server{
 		engine: gin.Default(),
