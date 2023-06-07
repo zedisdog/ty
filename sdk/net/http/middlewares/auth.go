@@ -195,18 +195,21 @@ func (ab *authBuilder) Build() gin.HandlerFunc {
 		} else if ctx.Query("token") != "" {
 			token = ctx.Query("token")
 		} else {
+			println("no token found")
 			ab.onNoTokenFound(ctx)
 			return
 		}
 
 		t, err := auth.Parse(token, ab.authKey)
 		if err != nil || !t.Valid {
+			println("parse failed")
 			ab.onTokenParseFailed(ctx, err)
 			return
 		}
 
 		claims, ok := t.Claims.(jwt.MapClaims)
 		if !ok {
+			println("parse failed2")
 			ab.onClaimsInvalid(ctx, t.Claims)
 			return
 		}
