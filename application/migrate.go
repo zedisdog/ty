@@ -3,6 +3,8 @@ package application
 import (
 	"errors"
 	"fmt"
+	"io/fs"
+
 	migrate2 "github.com/golang-migrate/migrate/v4"
 	"github.com/zedisdog/ty/database/migrate"
 	"github.com/zedisdog/ty/strings"
@@ -11,6 +13,7 @@ import (
 type IHasMigrator interface {
 	RegisterMigrator(name string, migrator migrate.IMigrator)
 	Migrator(name ...string) migrate.IMigrator
+	RegisterMigration(fs fs.FS)
 }
 
 func RegisterMigrator(name string, migrator migrate.IMigrator) {
@@ -25,6 +28,13 @@ func Migrator(name ...string) migrate.IMigrator {
 }
 func (app *App) Migrator(name ...string) migrate.IMigrator {
 	return app.getValueOrDefault(app.migrators, name...).(migrate.IMigrator)
+}
+
+func RegisterMigration(fs fs.FS) {
+	GetInstance().RegisterMigration(fs)
+}
+func (app *App) RegisterMigration(fs fs.FS) {
+	app.Migrator().GetSourceInstance().(*migrate.EmbedDriver).Add(fs)
 }
 
 func (app *App) initDefaultMigrator() {

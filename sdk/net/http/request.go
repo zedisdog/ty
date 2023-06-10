@@ -11,7 +11,14 @@ import (
 	"github.com/zedisdog/ty/errx"
 )
 
+// ValidateJSON
+//
+// Deprecated: use ValidateBody instead.
 func ValidateJSON(c *gin.Context, request interface{}) error {
+	return ValidateBody(c, request)
+}
+
+func ValidateBody(c *gin.Context, request interface{}) error {
 	if err := c.ShouldBindJSON(request); err != nil {
 		if e, ok := err.(validator.ValidationErrors); ok {
 			msg, detail := ParseValidateErrors(e, request)
