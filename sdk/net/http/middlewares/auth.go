@@ -93,6 +93,7 @@ func (ab *authBuilder) WithTokenIDFrom(jwtField string) *authBuilder {
 	return ab
 }
 
+// WithOnPass 内置验证通过后使用这个方法做自定义验证
 func (ab *authBuilder) WithOnPass(f func(claims jwt.MapClaims, ctx *gin.Context) error) *authBuilder {
 	ab.onPass = f
 	return ab
@@ -163,6 +164,7 @@ func (ab *authBuilder) WithOnUserNotExists(f func(ctx *gin.Context, id uint64)) 
 	return ab
 }
 
+// WithOnPassFailed 自定义验证不通过还希望自定义返回的数据结构时使用这个方法
 func (ab *authBuilder) WithOnPassFailed(f func(ctx *gin.Context, err error)) *authBuilder {
 	ab.onPassFailed = f
 	return ab
@@ -251,8 +253,13 @@ func (ab *authBuilder) Build() gin.HandlerFunc {
 
 		if ab.onPass != nil {
 			err = ab.onPass(claims, ctx)
-			if err != nil {
+			if ab.onPassFailed != nil && err != nil {
 				ab.onPassFailed(ctx, err)
+				return
+			}
+
+			if err != nil {
+				response.Error(ctx, err)
 				return
 			}
 		}
