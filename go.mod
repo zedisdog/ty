@@ -14,6 +14,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/iancoleman/strcase v0.2.0
 	github.com/jinzhu/copier v0.3.5
+	github.com/juju/ratelimit v1.0.2
 	github.com/sony/sonyflake v1.1.0
 	github.com/spf13/viper v1.15.1-0.20230225211736-3970ad177ecc
 	github.com/stretchr/testify v1.8.2

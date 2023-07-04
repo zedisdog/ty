@@ -1,9 +1,10 @@
 package response
 
 import (
-	"gorm.io/gorm"
 	"math"
 	"net/http"
+
+	"gorm.io/gorm"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zedisdog/ty/errx"
@@ -41,6 +42,26 @@ func Error(c *gin.Context, err error, status ...interface{}) {
 	}
 
 	Json(c, res, code, false)
+}
+
+func ErrorAndAbort(c *gin.Context, err error, status ...interface{}) {
+	res := &Response{Msg: err.Error()}
+
+	var code int
+	if len(status) > 0 {
+		code = status[0].(int)
+	} else {
+		if errx.Is(err, gorm.ErrRecordNotFound) {
+			code = http.StatusNotFound
+		} else if er, ok := err.(*errx.Error); ok && er.Code != 0 {
+			code = int(er.Code)
+			res.Data = er.Detail
+		} else {
+			code = http.StatusInternalServerError
+		}
+	}
+
+	Json(c, res, code, true)
 }
 
 // Success params[0]: data
